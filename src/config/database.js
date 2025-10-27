@@ -1,21 +1,25 @@
 const { Pool } = require('pg');
 
-function buildPool() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not defined');
+let pool;
+
+function getPool() {
+  if (!pool) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL is not defined');
+    }
+
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : undefined
+    });
   }
 
-  return new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : undefined
-  });
+  return pool;
 }
-
-const pool = buildPool();
 
 async function verifyConnection() {
   // Minimal connection check during startup
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     await client.query('SELECT 1');
   } finally {
@@ -24,6 +28,6 @@ async function verifyConnection() {
 }
 
 module.exports = {
-  pool,
+  getPool,
   verifyConnection
 };
