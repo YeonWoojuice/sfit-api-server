@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const http = require("http");
 const createApp = require("./app"); // app 생성 함수
-const { pool, verifyConnection } = require("./config/database"); // pool + verify 가져오기
+const { getpool, verifyConnection } = require("./config/database"); // pool + verify 가져오기
 
 const port = process.env.PORT || 4000;
 const app = createApp();
@@ -11,6 +11,7 @@ const server = http.createServer(app);
 // ✅ DB 헬스체크 엔드포인트: 여기 추가해두면 됨
 app.get("/health/db", async (req, res) => {
   try {
+    const pool = getpool();
     const { rows } = await pool.query("SELECT 1 AS ok");
     return res.json({
       status: "ok",

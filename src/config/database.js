@@ -21,7 +21,6 @@ function getPool() {
 }
 
 async function verifyConnection() {
-  // Minimal connection check during startup
   const client = await getPool().connect();
   try {
     await client.query("SELECT 1");
