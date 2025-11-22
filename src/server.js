@@ -1,17 +1,23 @@
 require("dotenv").config();
 
 const http = require("http");
-const createApp = require("./app"); // app 생성 함수
-const { getpool, verifyConnection } = require("./config/database"); // pool + verify 가져오기
+const url = require("url");
+const createApp = require("./app");
+const { getPool, verifyConnection } = require("./config/database");
 
 const port = process.env.PORT || 4000;
 const app = createApp();
 const server = http.createServer(app);
 
-// ✅ DB 헬스체크 엔드포인트: 여기 추가해두면 됨
+// 기본 헬스 체크
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+// DB 헬스 체크
 app.get("/health/db", async (req, res) => {
   try {
-    const pool = getpool();
+    const pool = getPool();
     const { rows } = await pool.query("SELECT 1 AS ok");
     return res.json({
       status: "ok",
@@ -27,23 +33,36 @@ app.get("/health/db", async (req, res) => {
   }
 });
 
-// 🔥 서버 시작 로직
 async function start() {
   try {
     if (process.env.DATABASE_URL) {
-      console.log("Using DATABASE_URL from environment");
-      await verifyConnection(); // 여기서 한 번 실제로 DB 접속 확인
+      const parsed = new url.URL(process.env.DATABASE_URL);
+      const safe = `${parsed.protocol}//${parsed.username ? "***" : ""}${parsed.username ? ":" : ""}${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`;
+
+      console.log("Using DATABASE_URL from environment:", safe);
+
+      try {
+        await verifyConnection(); // 실패해도 서버는 일단 켜서 /health로 확인
+      } catch (e) {
+        console.warn("[WARN] DB verify failed:", e?.message || e);
+        // process.exit(1);  // 디버깅 단계에서는 서버를 죽이지 않음
+      }
     } else {
       console.warn(
         "DATABASE_URL is not defined. Server will start, but database features are disabled until it is set."
       );
     }
 
-    server.listen(port, "0.0.0.0", () => {
-      console.log(`✅ Server running on port ${port}`);
-    });
+    server
+      .once("error", (err) => {
+        console.error("[listen error]", err?.message || err);
+        process.exit(1);
+      })
+      .listen(port, "0.0.0.0", () => {
+        console.log(`Server running on port ${port}`);
+      });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
+    console.error("Failed to start server:", error?.message || error);
     process.exit(1);
   }
 }

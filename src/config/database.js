@@ -1,19 +1,21 @@
 const { Pool } = require("pg");
+const url = require("url");
 
 let pool;
 
 function getPool() {
   if (!pool) {
-    if (!process.env.DATABASE_URL) {
+    const { DATABASE_URL, PGSSLMODE } = process.env;
+
+    if (!DATABASE_URL) {
       throw new Error("DATABASE_URL is not defined");
     }
 
+    const useSSL = PGSSLMODE === "require";
+
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl:
-        process.env.PGSSLMODE === "require"
-          ? { rejectUnauthorized: false }
-          : undefined,
+      connectionString: DATABASE_URL,
+      ssl: useSSL ? { rejectUnauthorized: false } : false,
     });
   }
 
@@ -21,11 +23,25 @@ function getPool() {
 }
 
 async function verifyConnection() {
-  const client = await getPool().connect();
+  const { DATABASE_URL } = process.env;
+  const parsed = DATABASE_URL ? new url.URL(DATABASE_URL) : null;
+  const safe = parsed
+    ? `${parsed.protocol}//${parsed.username ? "***" : ""}${parsed.username ? ":" : ""}${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`
+    : "(undefined)";
+
+  let client;
+
   try {
+    client = await getPool().connect();
     await client.query("SELECT 1");
+    console.log("✅ Database connected:", safe);
+  } catch (e) {
+    console.error("❌ DB connect failed:", e && (e.message || e));
+    throw e;
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 }
 
