@@ -1,18 +1,28 @@
+// src/app.js (최종 완성본)
 const express = require("express");
-const router = require("./routes");
+const cors = require("cors");
+const pool = require("./config/database");
 
-function createApp() {
-  const app = express();
+// 라우터 파일들 불러오기
+const authRoutes = require("./routes/auth");
+const clubRoutes = require("./routes/clubs"); // ★ 여기 있는지 확인!
 
-  app.use(express.json());
+const app = express();
+const PORT = process.env.PORT || 4000;
 
-  app.use("/api", router);
+app.use(cors());
+app.use(express.json());
 
-  app.use((req, res) => {
-    res.status(404).json({ message: "Not Found" });
-  });
+// 헬스 체크
+app.get("/", (req, res) => {
+  res.send("✅ Club Forge 서버가 정상 작동 중입니다!");
+});
 
-  return app;
-}
+// API 라우터 연결 (순서 중요!)
+app.use("/api/auth", authRoutes);
+app.use("/api/clubs", clubRoutes); // ★ 여기 있는지 확인!
 
-module.exports = createApp;
+// 서버 시작
+app.listen(PORT, () => {
+  console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+});

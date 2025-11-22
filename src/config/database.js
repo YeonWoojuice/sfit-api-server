@@ -1,51 +1,26 @@
+// db.js 파일 내용
 const { Pool } = require("pg");
-const url = require("url");
+require("dotenv").config(); // .env에서 비밀번호 꺼내오기
 
-let pool;
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+  ssl: {
+    rejectUnauthorized: false, // Render 외부 접속 시 필수 옵션
+  },
+});
 
-function getPool() {
-  if (!pool) {
-    const { DATABASE_URL, PGSSLMODE } = process.env;
-
-    if (!DATABASE_URL) {
-      throw new Error("DATABASE_URL is not defined");
-    }
-
-    const useSSL = PGSSLMODE === "require";
-
-    pool = new Pool({
-      connectionString: DATABASE_URL,
-      ssl: useSSL ? { rejectUnauthorized: false } : false,
-    });
+// 잘 연결됐는지 테스트하는 코드
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error("❌ 연결 실패! 에러 내용을 확인하세요:", err.stack);
+  } else {
+    console.log("✅ DB 연결 성공! 이제 코드로 DB를 조작할 수 있습니다.");
+    release(); // 연결 종료
   }
+});
 
-  return pool;
-}
-
-async function verifyConnection() {
-  const { DATABASE_URL } = process.env;
-  const parsed = DATABASE_URL ? new url.URL(DATABASE_URL) : null;
-  const safe = parsed
-    ? `${parsed.protocol}//${parsed.username ? "***" : ""}${parsed.username ? ":" : ""}${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`
-    : "(undefined)";
-
-  let client;
-
-  try {
-    client = await getPool().connect();
-    await client.query("SELECT 1");
-    console.log("✅ Database connected:", safe);
-  } catch (e) {
-    console.error("❌ DB connect failed:", e && (e.message || e));
-    throw e;
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-}
-
-module.exports = {
-  getPool,
-  verifyConnection,
-};
+module.exports = pool;
