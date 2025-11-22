@@ -26,3 +26,4 @@ app.use("/api/clubs", clubRoutes); // ★ 여기 있는지 확인!
 app.listen(PORT, () => {
   console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });
+module.exports = app;
