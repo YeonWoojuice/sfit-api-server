@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const http = require("http");
 const url = require("url");
-const createApp = require("./main");
+const createApp = require("./app");
 const { getPool, verifyConnection } = require("./config/database");
 
 const port = process.env.PORT || 4000;
