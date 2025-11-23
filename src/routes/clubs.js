@@ -34,13 +34,45 @@ router.post("/", authenticateToken, async (req, res) => {
   }
 });
 
-// 2. 동호회 목록 보기 (GET)
+// src/routes/clubs.js (목록 조회 부분 수정)
+
+// 2. 동호회 목록 보기 (검색 필터 추가!)
+// 사용법: GET /api/clubs?region=서울&sport=축구
 router.get("/", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM clubs ORDER BY created_at DESC"
-    );
-    res.json({ count: result.rows.length, clubs: result.rows });
+    // 1. 주소창(Query)에서 검색어 꺼내기
+    const { region, sport } = req.query;
+
+    // 2. 기본 쿼리 (조건이 없을 때)
+    let sql = "SELECT * FROM clubs";
+    let params = [];
+    let conditions = [];
+
+    // 3. 조건이 있으면 SQL 문장 조립하기
+    if (region) {
+      params.push(region);
+      conditions.push(`region = $${params.length}`); // $1, $2... 자동 생성
+    }
+    if (sport) {
+      params.push(sport);
+      conditions.push(`sport = $${params.length}`);
+    }
+
+    // 조건이 하나라도 있으면 WHERE 붙이기
+    if (conditions.length > 0) {
+      sql += " WHERE " + conditions.join(" AND ");
+    }
+
+    // 정렬 추가
+    sql += " ORDER BY created_at DESC";
+
+    // 4. DB에 요청
+    const result = await pool.query(sql, params);
+
+    res.json({
+      count: result.rows.length,
+      clubs: result.rows,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "목록 조회 실패" });
