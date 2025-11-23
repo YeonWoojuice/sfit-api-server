@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const http = require("http");
 const url = require("url");
-const createApp = require("./app");
+const createApp = require("./main");
 const { getPool, verifyConnection } = require("./config/database");
 
 const port = process.env.PORT || 4000;
@@ -37,7 +37,9 @@ async function start() {
   try {
     if (process.env.DATABASE_URL) {
       const parsed = new url.URL(process.env.DATABASE_URL);
-      const safe = `${parsed.protocol}//${parsed.username ? "***" : ""}${parsed.username ? ":" : ""}${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`;
+      const safe = `${parsed.protocol}//${parsed.username ? "***" : ""}${
+        parsed.username ? ":" : ""
+      }${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`;
 
       console.log("Using DATABASE_URL from environment:", safe);
 
