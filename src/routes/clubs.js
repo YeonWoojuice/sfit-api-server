@@ -1,126 +1,184 @@
-// src/routes/clubs.js (최종_최종_진짜최종.js)
 const express = require("express");
-const pool = require("../config/database");
+const { getPool } = require("../config/database");
 const authenticateToken = require("../middlewares/authenticateToken");
 
 const router = express.Router();
 
-// 1. 동호회 만들기 (POST)
+// 1. 동호회 생성
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const { name, description, region, sport, max_members } = req.body;
+    const {
+      name,
+      explane, // DB column name
+      description, // API might send this
+      region_code,
+      region, // API might send this
+      location, // Added based on Frontend UI
+      sport_id,
+      sport, // API might send this
+      start_time,
+      end_time,
+      days_of_week,
+      capacity_min,
+      capacity_max,
+      level_min,
+      level_max,
+      is_public,
+      club_image_url // Legacy support (ignored for now as per schema)
+    } = req.body;
+
     const ownerId = req.user.id;
 
-    if (!name || !region || !sport) {
-      return res
-        .status(400)
-        .json({ message: "이름, 지역, 종목은 필수입니다." });
+    // Map legacy/frontend fields to schema fields
+    const finalExplane = explane || description;
+    const finalRegionCode = region_code || region;
+    const finalSportId = sport_id || sport;
+
+    // 1. 기본 검증
+    if (!name || !finalExplane || !finalRegionCode || !finalSportId || !start_time || !end_time) {
+      return res.status(400).json({
+        message: "이름, 설명, 지역, 종목, 시작/종료 시간은 필수입니다."
+      });
     }
 
-    const newClub = await pool.query(
-      `INSERT INTO clubs (name, description, region, sport, max_members, owner_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING *`,
-      [name, description, region, sport, max_members || 50, ownerId]
-    );
+    // 2. 시간 검증
+    const today = new Date().toISOString().split('T')[0];
+    const start = new Date(`${today}T${start_time}`);
+    const end = new Date(`${today}T${end_time}`);
+
+    if (start >= end) {
+      return res.status(400).json({
+        message: "시작 시간은 종료 시간보다 빨라야 합니다."
+      });
+    }
+
+    const pool = getPool();
+
+    // 3. DB 저장
+    const query = `
+      INSERT INTO clubs (
+        name, explane, region_code, location, sport_id, 
+        start_time, end_time, days_of_week,
+        capacity_min, capacity_max, level_min, level_max,
+        is_public, owner_user_id, coaching
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *;
+    `;
+
+    const values = [
+      name,
+      finalExplane,
+      finalRegionCode,
+      location || null,
+      finalSportId,
+      start_time,
+      end_time,
+      days_of_week || [],
+      capacity_min || 3,
+      capacity_max || 25,
+      level_min,
+      level_max,
+      is_public !== undefined ? is_public : true,
+      ownerId,
+      true // coaching default true per schema
+    ];
+
+    const result = await pool.query(query, values);
+    const newClub = result.rows[0];
+
+    // 4. 생성자를 멤버(HOST)로 추가
+    const memberQuery = `
+      INSERT INTO club_members (club_id, user_id, role)
+      VALUES ($1, $2, 'HOST')
+    `;
+    await pool.query(memberQuery, [newClub.id, ownerId]);
 
     res.status(201).json({
-      message: "동호회가 개설되었습니다!",
-      club: newClub.rows[0],
+      message: "동호회 개설 완료!",
+      club: newClub
     });
+
   } catch (err) {
-    console.error(err);
+    console.error("동호회 생성 중 오류 발생:", err);
     res.status(500).json({ message: "서버 에러 발생" });
   }
 });
 
-// src/routes/clubs.js (목록 조회 부분 수정)
-
-// 2. 동호회 목록 보기 (검색 필터 추가!)
-// 사용법: GET /api/clubs?region=서울&sport=축구
+// 2. 목록 조회
 router.get("/", async (req, res) => {
   try {
-    // 1. 주소창(Query)에서 검색어 꺼내기
     const { region, sport } = req.query;
+    const pool = getPool();
 
-    // 2. 기본 쿼리 (조건이 없을 때)
-    let sql = "SELECT * FROM clubs";
+    let sql = `
+      SELECT c.*, u.name as owner_name,
+             (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members
+      FROM clubs c
+      JOIN users u ON c.owner_user_id = u.id
+    `;
+
     let params = [];
     let conditions = [];
 
-    // 3. 조건이 있으면 SQL 문장 조립하기
     if (region) {
       params.push(region);
-      conditions.push(`region = $${params.length}`); // $1, $2... 자동 생성
+      conditions.push(`c.region_code = $${params.length}`);
     }
     if (sport) {
       params.push(sport);
-      conditions.push(`sport = $${params.length}`);
+      conditions.push(`c.sport_id = $${params.length}`);
     }
 
-    // 조건이 하나라도 있으면 WHERE 붙이기
-    if (conditions.length > 0) {
-      sql += " WHERE " + conditions.join(" AND ");
-    }
+    if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
 
-    // 정렬 추가
-    sql += " ORDER BY created_at DESC";
+    sql += " ORDER BY c.created_at DESC";
 
-    // 4. DB에 요청
     const result = await pool.query(sql, params);
-
-    res.json({
-      count: result.rows.length,
-      clubs: result.rows,
-    });
+    res.json({ count: result.rows.length, clubs: result.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "목록 조회 실패" });
   }
 });
 
-// 3. 동호회 상세 조회 (GET)
+// 3. 상세 조회
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    const pool = getPool();
     const result = await pool.query("SELECT * FROM clubs WHERE id = $1", [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "존재하지 않는 동호회입니다." });
-    }
+    if (result.rows.length === 0)
+      return res.status(404).json({ message: "없음" });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "조회 중 에러 발생" });
+    res.status(500).json({ message: "에러 발생" });
   }
 });
 
-// ★ 4. 동호회 가입하기 (POST) - 여기 있는지 확인하세요!
+// 4. 가입하기
 router.post("/:id/join", authenticateToken, async (req, res) => {
   try {
     const clubId = req.params.id;
     const userId = req.user.id;
+    const pool = getPool();
 
-    // (1) 이미 가입했는지 확인
-    const checkMember = await pool.query(
-      "SELECT * FROM club_members WHERE club_id = $1 AND user_id = $2",
+    const check = await pool.query(
+      "SELECT * FROM club_members WHERE club_id=$1 AND user_id=$2",
       [clubId, userId]
     );
+    if (check.rows.length > 0)
+      return res.status(409).json({ message: "이미 가입됨" });
 
-    if (checkMember.rows.length > 0) {
-      return res.status(409).json({ message: "이미 가입된 동호회입니다." });
-    }
-
-    // (2) 가입 처리
     await pool.query(
-      `INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'MEMBER')`,
+      `INSERT INTO club_members (club_id, user_id) VALUES ($1, $2)`,
       [clubId, userId]
     );
-
-    res.status(200).json({ message: "가입 성공! 환영합니다." });
+    res.json({ message: "가입 성공" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "가입 처리 중 에러가 발생했습니다." });
+    res.status(500).json({ message: "에러 발생" });
   }
 });
 

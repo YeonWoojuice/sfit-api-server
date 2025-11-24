@@ -6,25 +6,27 @@ const pool = require("./config/database");
 // 라우터 파일들 불러오기
 const authRoutes = require("./routes/auth");
 const clubRoutes = require("./routes/clubs"); // ★ 여기 있는지 확인!
+const flashRoutes = require("./routes/flashes");
 
-const app = express();
-const PORT = process.env.PORT || 4000;
+const createApp = () => {
 
-app.use(cors());
-app.use(express.json());
+  const app = express();
 
-// 헬스 체크
-app.get("/", (req, res) => {
-  res.send("✅ Club Forge 서버가 정상 작동 중입니다!");
-});
+  app.use(cors());
+  app.use(express.json());
 
-// API 라우터 연결 (순서 중요!)
-app.use("/api/auth", authRoutes);
-app.use("/api/clubs", clubRoutes); // ★ 여기 있는지 확인!
+  // 헬스 체크
+  app.get("/", (req, res) => {
+    res.send("✅ Club Forge 서버가 정상 작동 중입니다!");
+  });
 
-// 서버 시작
-app.listen(PORT, () => {
-  console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
-});
-module.exports = app;
+  // API 라우터 연결 (순서 중요!)
+  app.use("/api/auth", authRoutes);
+  app.use("/api/clubs", clubRoutes);
+  app.use("/api/flashes", flashRoutes);
+
+  return app;
+};
+
+module.exports = createApp;
 // 배포 테스트용 주석 추가
