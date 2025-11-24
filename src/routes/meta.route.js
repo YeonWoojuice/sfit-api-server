@@ -12,19 +12,41 @@ router.get('/regions', async (req, res) => {
             const result = await pool.query("SELECT * FROM regions ORDER BY code");
             res.json(result.rows);
         } catch (dbError) {
-            // Fallback for development if table is empty/missing
+            // Fallback for development with hierarchical region data
             res.json([
-                { code: 'SEOUL', name: '서울' },
-                { code: 'GYEONGGI', name: '경기' },
-                { code: 'INCHEON', name: '인천' },
-                { code: 'BUSAN', name: '부산' },
-                { code: 'DAEGU', name: '대구' },
-                { code: 'GWANGJU', name: '광주' },
-                { code: 'DAEJEON', name: '대전' },
-                { code: 'ULSAN', name: '울산' },
-                { code: 'GYEONGBUK', name: '경북' },
-                { code: 'CHUNGNAM', name: '충남' },
-                { code: 'CHUNGBUK', name: '충북' }
+                { code: 'SEOUL', name: '서울', parent: null },
+                { code: 'SEOUL_GANGNAM', name: '강남구', parent: 'SEOUL' },
+                { code: 'SEOUL_SEOCHO', name: '서초구', parent: 'SEOUL' },
+                { code: 'SEOUL_SONGPA', name: '송파구', parent: 'SEOUL' },
+                { code: 'SEOUL_GANGDONG', name: '강동구', parent: 'SEOUL' },
+                { code: 'SEOUL_MAPO', name: '마포구', parent: 'SEOUL' },
+                { code: 'SEOUL_YONGSAN', name: '용산구', parent: 'SEOUL' },
+                { code: 'SEOUL_JONGNO', name: '종로구', parent: 'SEOUL' },
+                { code: 'SEOUL_JUNG', name: '중구', parent: 'SEOUL' },
+
+                { code: 'GYEONGGI', name: '경기', parent: null },
+                { code: 'GYEONGGI_BUNDANG', name: '분당구', parent: 'GYEONGGI' },
+                { code: 'GYEONGGI_SEONGNAM', name: '성남시', parent: 'GYEONGGI' },
+                { code: 'GYEONGGI_SUWON', name: '수원시', parent: 'GYEONGGI' },
+                { code: 'GYEONGGI_YONGIN', name: '용인시', parent: 'GYEONGGI' },
+                { code: 'GYEONGGI_GOYANG', name: '고양시', parent: 'GYEONGGI' },
+                { code: 'GYEONGGI_SEONGBUK', name: '성북구', parent: 'GYEONGGI' },
+
+                { code: 'INCHEON', name: '인천', parent: null },
+                { code: 'INCHEON_NAMDONG', name: '남동구', parent: 'INCHEON' },
+                { code: 'INCHEON_YEONSU', name: '연수구', parent: 'INCHEON' },
+
+                { code: 'BUSAN', name: '부산', parent: null },
+                { code: 'BUSAN_HAEUNDAE', name: '해운대구', parent: 'BUSAN' },
+                { code: 'BUSAN_SUYEONG', name: '수영구', parent: 'BUSAN' },
+
+                { code: 'DAEGU', name: '대구', parent: null },
+                { code: 'GWANGJU', name: '광주', parent: null },
+                { code: 'DAEJEON', name: '대전', parent: null },
+                { code: 'ULSAN', name: '울산', parent: null },
+                { code: 'GYEONGBUK', name: '경북', parent: null },
+                { code: 'CHUNGNAM', name: '충남', parent: null },
+                { code: 'CHUNGBUK', name: '충북', parent: null }
             ]);
         }
     } catch (error) {

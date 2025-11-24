@@ -4,9 +4,7 @@ const cors = require("cors");
 const pool = require("./config/database");
 
 // 라우터 파일들 불러오기
-const authRoutes = require("./routes/auth");
-const clubRoutes = require("./routes/clubs"); // ★ 여기 있는지 확인!
-const flashRoutes = require("./routes/flashes");
+const routes = require("./routes/index");
 
 const createApp = () => {
 
@@ -20,10 +18,8 @@ const createApp = () => {
     res.send("✅ Club Forge 서버가 정상 작동 중입니다!");
   });
 
-  // API 라우터 연결 (순서 중요!)
-  app.use("/api/auth", authRoutes);
-  app.use("/api/clubs", clubRoutes);
-  app.use("/api/flashes", flashRoutes);
+  // API 라우터 연결
+  app.use("/api", routes);
 
   return app;
 };

@@ -9,13 +9,12 @@ router.post("/", authenticateToken, async (req, res) => {
   try {
     const {
       name,
-      explane, // DB column name
-      description, // API might send this
+      explain,
       region_code,
-      region, // API might send this
-      location, // Added based on Frontend UI
+      region, // Legacy support
+      location,
       sport_id,
-      sport, // API might send this
+      sport, // Legacy support
       start_time,
       end_time,
       days_of_week,
@@ -24,18 +23,17 @@ router.post("/", authenticateToken, async (req, res) => {
       level_min,
       level_max,
       is_public,
-      club_image_url // Legacy support (ignored for now as per schema)
+      attachment_id
     } = req.body;
 
     const ownerId = req.user.id;
 
     // Map legacy/frontend fields to schema fields
-    const finalExplane = explane || description;
     const finalRegionCode = region_code || region;
     const finalSportId = sport_id || sport;
 
     // 1. 기본 검증
-    if (!name || !finalExplane || !finalRegionCode || !finalSportId || !start_time || !end_time) {
+    if (!name || !explain || !finalRegionCode || !finalSportId || !start_time || !end_time) {
       return res.status(400).json({
         message: "이름, 설명, 지역, 종목, 시작/종료 시간은 필수입니다."
       });
@@ -57,18 +55,18 @@ router.post("/", authenticateToken, async (req, res) => {
     // 3. DB 저장
     const query = `
       INSERT INTO clubs (
-        name, explane, region_code, location, sport_id, 
+        name, explain, region_code, location, sport_id, 
         start_time, end_time, days_of_week,
         capacity_min, capacity_max, level_min, level_max,
-        is_public, owner_user_id, coaching
+        is_public, owner_user_id, coaching, attachment_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *;
     `;
 
     const values = [
       name,
-      finalExplane,
+      explain,
       finalRegionCode,
       location || null,
       finalSportId,
@@ -81,7 +79,8 @@ router.post("/", authenticateToken, async (req, res) => {
       level_max,
       is_public !== undefined ? is_public : true,
       ownerId,
-      true // coaching default true per schema
+      true, // coaching default true per schema
+      attachment_id || null
     ];
 
     const result = await pool.query(query, values);
@@ -108,7 +107,7 @@ router.post("/", authenticateToken, async (req, res) => {
 // 2. 목록 조회
 router.get("/", async (req, res) => {
   try {
-    const { region, sport } = req.query;
+    const { region, sport, search } = req.query;
     const pool = getPool();
 
     let sql = `
@@ -128,6 +127,17 @@ router.get("/", async (req, res) => {
     if (sport) {
       params.push(sport);
       conditions.push(`c.sport_id = $${params.length}`);
+    }
+
+    // 검색어가 있으면 name, location, region_code에서 검색
+    if (search) {
+      params.push(`%${search}%`);
+      const searchIndex = params.length;
+      conditions.push(`(
+        c.name ILIKE $${searchIndex} OR 
+        c.location ILIKE $${searchIndex} OR 
+        c.region_code ILIKE $${searchIndex}
+      )`);
     }
 
     if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
