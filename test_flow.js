@@ -81,7 +81,8 @@ async function testFlow() {
                 days_of_week: [0, 6],
                 capacity_min: 5,
                 capacity_max: 20,
-                is_public: true
+                level_min: 1, // Integer check
+                level_max: 5  // Integer check
             })
         });
         data = await res.json();

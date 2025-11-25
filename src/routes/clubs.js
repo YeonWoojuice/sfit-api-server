@@ -22,7 +22,6 @@ router.post("/", authenticateToken, async (req, res) => {
       capacity_max,
       level_min,
       level_max,
-      is_public,
       attachment_id
     } = req.body;
 
@@ -58,9 +57,9 @@ router.post("/", authenticateToken, async (req, res) => {
         name, explain, region_code, location, sport_id, 
         start_time, end_time, days_of_week,
         capacity_min, capacity_max, level_min, level_max,
-        is_public, owner_user_id, coaching, attachment_id
+        owner_user_id, coaching, attachment_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *;
     `;
 
@@ -77,7 +76,6 @@ router.post("/", authenticateToken, async (req, res) => {
       capacity_max || 25,
       level_min,
       level_max,
-      is_public !== undefined ? is_public : true,
       ownerId,
       true, // coaching default true per schema
       attachment_id || null
