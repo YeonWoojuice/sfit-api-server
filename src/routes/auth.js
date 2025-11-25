@@ -25,7 +25,17 @@ function generateTokens(user) {
 
 // Register
 router.post('/register', async (req, res) => {
-  const { username, password, name, phone, email } = req.body;
+  // Support both backend standard and frontend specific fields
+  let { username, password, name, phone, email } = req.body;
+  const { ID, Password, Name, phonenumber, Email, EmailDomain } = req.body;
+
+  // Map frontend fields if present
+  if (ID) username = ID;
+  if (Password) password = Password;
+  if (Name) name = Name;
+  if (phonenumber) phone = phonenumber;
+  if (Email && EmailDomain) email = `${Email}@${EmailDomain}`;
+
   console.log('Register attempt:', username);
 
   if (!username || !password || !name || !phone || !email) {
@@ -61,7 +71,14 @@ router.post('/register', async (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  // Support both backend standard and frontend specific fields
+  let { username, password } = req.body;
+  const { loginID, loginPassword } = req.body;
+
+  // Map frontend fields if present
+  if (loginID) username = loginID;
+  if (loginPassword) password = loginPassword;
+
   console.log('Login attempt:', username);
 
   try {
