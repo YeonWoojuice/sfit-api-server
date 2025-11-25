@@ -109,10 +109,11 @@ router.get("/", async (req, res) => {
 
 
     let sql = `
-      SELECT c.*, u.name as owner_name,
+      SELECT c.*, u.name as owner_name, r.name as region_name,
              (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members
       FROM clubs c
       JOIN users u ON c.owner_user_id = u.id
+      LEFT JOIN regions r ON c.region_code = r.code
     `;
 
     let params = [];
@@ -127,14 +128,15 @@ router.get("/", async (req, res) => {
       conditions.push(`c.sport_id = $${params.length}`);
     }
 
-    // 검색어가 있으면 name, location, region_code에서 검색
+    // 검색어가 있으면 name, location, region_code, region_name에서 검색
     if (search) {
       params.push(`%${search}%`);
       const searchIndex = params.length;
       conditions.push(`(
         c.name ILIKE $${searchIndex} OR 
         c.location ILIKE $${searchIndex} OR 
-        c.region_code ILIKE $${searchIndex}
+        c.region_code ILIKE $${searchIndex} OR
+        r.name ILIKE $${searchIndex}
       )`);
     }
 
