@@ -10,35 +10,20 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: DB_HOST
-        fromDatabase:
-          name: sfit-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: sfit-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: sfit-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: sfit-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: sfit-db
-          property: password
       - key: ACCESS_TOKEN_SECRET
         generateValue: true
       - key: REFRESH_TOKEN_SECRET
         generateValue: true
-
-databases:
-  - name: sfit-db
-    plan: free
-    databaseName: sfit
-    user: sfit_user
+      # Database connection details (Manually set these in Render Dashboard)
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
 
 version: "1"
