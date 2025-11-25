@@ -23,7 +23,8 @@ function authenticateToken(req, res, next) {
   }
 
   // 3. 토큰이 위조되었거나 만료되었는지 확인
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+  const secret = process.env.ACCESS_TOKEN_SECRET || 'access_secret';
+  jwt.verify(token, secret, (err, user) => {
     if (err) {
       return res.status(403).json({ message: "유효하지 않은 토큰입니다." });
     }

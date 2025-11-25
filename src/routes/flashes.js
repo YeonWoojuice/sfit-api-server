@@ -1,6 +1,6 @@
 // src/routes/flashes.js
 const express = require("express");
-const { getPool } = require("../config/database");
+const pool = require("../config/database");
 const authenticateToken = require("../middlewares/authenticateToken");
 
 const router = express.Router();
@@ -49,11 +49,11 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    const pool = getPool();
+
 
     const query = `
       INSERT INTO flash_meetups (
-        name, explain, attachment_id, host_user_id, 
+        name, description, attachment_id, host_user_id, 
         sport_id, region_code, place_text, level,
         capacity_min, capacity_max, days_of_week,
         start_at, end_at, start_time, end_time, status
@@ -64,7 +64,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     const values = [
       name,
-      explain,
+      explain, // Note: req.body still has explain, mapping to description column
       attachment_id || null,
       hostUserId,
       finalSportId,
@@ -78,7 +78,7 @@ router.post("/", authenticateToken, async (req, res) => {
       end_at,
       start_time,
       end_time,
-      'DRAFT' // 기본 상태
+      'DRAFT'
     ];
 
     const newFlash = await pool.query(query, values);
@@ -97,11 +97,10 @@ router.post("/", authenticateToken, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { region, sport } = req.query;
-    const pool = getPool();
 
     let sql = `
       SELECT f.*, u.name as host_name,
-             (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.flash_id = f.id) as current_members
+             (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members
       FROM flash_meetups f
       JOIN users u ON f.host_user_id = u.id
     `;
@@ -135,17 +134,16 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
   try {
     const flashId = req.params.id;
     const userId = req.user.id;
-    const pool = getPool();
 
     const check = await pool.query(
-      "SELECT * FROM flash_attendees WHERE flash_id=$1 AND user_id=$2",
+      "SELECT * FROM flash_attendees WHERE meetup_id=$1 AND user_id=$2",
       [flashId, userId]
     );
     if (check.rows.length > 0)
       return res.status(409).json({ message: "이미 참여함" });
 
     await pool.query(
-      `INSERT INTO flash_attendees (flash_id, user_id) VALUES ($1, $2)`,
+      `INSERT INTO flash_attendees (meetup_id, user_id) VALUES ($1, $2)`,
       [flashId, userId]
     );
     res.json({ message: "참여 성공" });

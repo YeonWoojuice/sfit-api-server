@@ -1,5 +1,5 @@
 const express = require("express");
-const { getPool } = require("../config/database");
+const pool = require("../config/database");
 const authenticateToken = require("../middlewares/authenticateToken");
 
 const router = express.Router();
@@ -50,7 +50,7 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    const pool = getPool();
+
 
     // 3. DB 저장
     const query = `
@@ -108,7 +108,7 @@ router.post("/", authenticateToken, async (req, res) => {
 router.get("/", async (req, res) => {
   try {
     const { region, sport, search } = req.query;
-    const pool = getPool();
+
 
     let sql = `
       SELECT c.*, u.name as owner_name,
@@ -156,7 +156,7 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const pool = getPool();
+
     const result = await pool.query("SELECT * FROM clubs WHERE id = $1", [id]);
     if (result.rows.length === 0)
       return res.status(404).json({ message: "없음" });
@@ -172,7 +172,7 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
   try {
     const clubId = req.params.id;
     const userId = req.user.id;
-    const pool = getPool();
+
 
     const check = await pool.query(
       "SELECT * FROM club_members WHERE club_id=$1 AND user_id=$2",

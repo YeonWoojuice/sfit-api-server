@@ -12,5 +12,7 @@ router.use("/clubs", clubRouter);
 router.use("/meta", metaRouter);
 router.use("/auth", authRouter);
 router.use("/flashes", flashesRouter);
+router.use("/users", require("./users"));
+router.use("/admin", require("./admin"));
 
 module.exports = router;
