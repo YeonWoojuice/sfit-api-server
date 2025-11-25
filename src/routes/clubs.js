@@ -38,16 +38,45 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    // 2. 시간 검증
-    const today = new Date().toISOString().split('T')[0];
-    const start = new Date(`${today}T${start_time}`);
-    const end = new Date(`${today}T${end_time}`);
+    // 2. 시간 검증 및 변환
+    const normalizeTime = (input) => {
+      let h, m = 0;
+      if (typeof input === 'number') {
+        h = input;
+      } else if (/^\d+$/.test(input)) {
+        h = parseInt(input, 10);
+      } else {
+        const parts = input.split(':');
+        h = parseInt(parts[0], 10);
+        m = parts[1] ? parseInt(parts[1], 10) : 0;
+      }
 
-    if (start >= end) {
+      if (h < 0 || h > 24 || m < 0 || m > 59 || (h === 24 && m > 0)) {
+        throw new Error("잘못된 시간 형식입니다 (0-24시)");
+      }
+
+      return {
+        formatted: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`,
+        value: h * 60 + m
+      };
+    };
+
+    let start, end;
+    try {
+      start = normalizeTime(start_time);
+      end = normalizeTime(end_time);
+    } catch (e) {
+      return res.status(400).json({ message: e.message });
+    }
+
+    if (start.value >= end.value) {
       return res.status(400).json({
         message: "시작 시간은 종료 시간보다 빨라야 합니다."
       });
     }
+
+    const finalStartTime = start.formatted;
+    const finalEndTime = end.formatted;
 
 
 
@@ -69,8 +98,8 @@ router.post("/", authenticateToken, async (req, res) => {
       finalRegionCode,
       location || null,
       finalSportId,
-      start_time,
-      end_time,
+      finalStartTime,
+      finalEndTime,
       days_of_week || [],
       capacity_min || 3,
       capacity_max || 25,

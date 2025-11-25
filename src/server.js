@@ -3,7 +3,7 @@ require("dotenv").config();
 const http = require("http");
 const url = require("url");
 const createApp = require("./app");
-const { getPool, verifyConnection } = require("./config/database");
+const pool = require("./config/database");
 
 const port = process.env.PORT || 4000;
 const app = createApp();
@@ -17,7 +17,6 @@ app.get("/health", (_req, res) => {
 // DB 헬스 체크
 app.get("/health/db", async (req, res) => {
   try {
-    const pool = getPool();
     const { rows } = await pool.query("SELECT 1 AS ok");
     return res.json({
       status: "ok",
@@ -37,18 +36,10 @@ async function start() {
   try {
     if (process.env.DATABASE_URL) {
       const parsed = new url.URL(process.env.DATABASE_URL);
-      const safe = `${parsed.protocol}//${parsed.username ? "***" : ""}${
-        parsed.username ? ":" : ""
-      }${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`;
+      const safe = `${parsed.protocol}//${parsed.username ? "***" : ""}${parsed.username ? ":" : ""
+        }${parsed.password ? "***@" : ""}${parsed.host}${parsed.pathname}`;
 
       console.log("Using DATABASE_URL from environment:", safe);
-
-      try {
-        await verifyConnection(); // 실패해도 서버는 일단 켜서 /health로 확인
-      } catch (e) {
-        console.warn("[WARN] DB verify failed:", e?.message || e);
-        // process.exit(1);  // 디버깅 단계에서는 서버를 죽이지 않음
-      }
     } else {
       console.warn(
         "DATABASE_URL is not defined. Server will start, but database features are disabled until it is set."

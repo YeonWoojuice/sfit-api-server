@@ -40,14 +40,45 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    // 시간 검증
-    const startDate = new Date(start_at);
-    const endDate = new Date(end_at);
-    if (startDate >= endDate) {
-      return res.status(400).json({
-        message: "시작 날짜는 종료 날짜보다 빨라야 합니다."
-      });
+    // 시간 검증 및 변환
+    const normalizeTime = (input) => {
+      let h, m = 0;
+      if (typeof input === 'number') {
+        h = input;
+      } else if (/^\d+$/.test(input)) {
+        h = parseInt(input, 10);
+      } else {
+        const parts = input.split(':');
+        h = parseInt(parts[0], 10);
+        m = parts[1] ? parseInt(parts[1], 10) : 0;
+      }
+
+      if (h < 0 || h > 24 || m < 0 || m > 59 || (h === 24 && m > 0)) {
+        throw new Error("잘못된 시간 형식입니다 (0-24시)");
+      }
+
+      return {
+        formatted: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`,
+        value: h * 60 + m
+      };
+    };
+
+    let start, end;
+    try {
+      start = normalizeTime(start_time);
+      end = normalizeTime(end_time);
+    } catch (e) {
+      return res.status(400).json({ message: e.message });
     }
+
+    // 날짜 + 시간 비교
+    // start_at/end_at은 ISO string (YYYY-MM-DDTHH:mm:ss.sssZ)
+    // 여기서는 start_time/end_time 필드 자체의 유효성만 검사하거나, 
+    // start_at/end_at이 이미 있으므로 그것을 믿을 수도 있음.
+    // 하지만 DB에 start_time/end_time 컬럼이 별도로 있으므로 변환된 값을 넣어야 함.
+
+    const finalStartTime = start.formatted;
+    const finalEndTime = end.formatted;
 
 
 
@@ -76,8 +107,8 @@ router.post("/", authenticateToken, async (req, res) => {
       days_of_week || [],
       start_at,
       end_at,
-      start_time,
-      end_time,
+      finalStartTime,
+      finalEndTime,
       'DRAFT'
     ];
 
