@@ -253,6 +253,7 @@ router.post("/logout", async (req, res) => {
 });
 
 // Me
+// Get user profile
 router.get("/me", async (req, res) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
