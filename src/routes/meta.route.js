@@ -25,4 +25,29 @@ router.get('/sports', async (req, res) => {
     }
 });
 
+// GET /api/dates
+router.get('/dates', (req, res) => {
+    const today = new Date();
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
+
+    // Generate next 7 days
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        dates.push({
+            date: d.toISOString().split('T')[0],
+            day: days[d.getDay()],
+            day_index: d.getDay()
+        });
+    }
+
+    res.json({
+        today: today.toISOString().split('T')[0],
+        days: days,
+        dates: dates,
+        time_slots: Array.from({ length: 24 }, (_, i) => i) // 0-23 hours
+    });
+});
+
 module.exports = router;
