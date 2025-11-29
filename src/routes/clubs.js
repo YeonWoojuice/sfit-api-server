@@ -22,7 +22,8 @@ router.post("/", authenticateToken, async (req, res) => {
       capacity_max,
       level_min,
       level_max,
-      attachment_id
+      attachment_id,
+      is_public // [NEW] Support for private clubs
     } = req.body;
 
     const ownerId = req.user.id;
@@ -86,9 +87,9 @@ router.post("/", authenticateToken, async (req, res) => {
         name, explain, region_code, location, sport_id, 
         start_time, end_time, days_of_week,
         capacity_min, capacity_max, level_min, level_max,
-        owner_user_id, coaching, attachment_id
+        owner_user_id, coaching, attachment_id, is_public
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *;
     `;
 
@@ -107,7 +108,8 @@ router.post("/", authenticateToken, async (req, res) => {
       level_max,
       ownerId,
       true, // coaching default true per schema
-      attachment_id || null
+      attachment_id || null,
+      is_public !== undefined ? is_public : true // Default to true if not provided
     ];
 
     const result = await pool.query(query, values);
@@ -134,15 +136,14 @@ router.post("/", authenticateToken, async (req, res) => {
 // 2. 목록 조회
 router.get("/", async (req, res) => {
   try {
-    const { region, sport, search } = req.query;
+    const { region, sport, search, coaching } = req.query;
 
 
     let sql = `
-      SELECT c.*, u.name as owner_name, r.name as region_name,
+      SELECT c.*, u.name as owner_name,
              (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members
       FROM clubs c
       JOIN users u ON c.owner_user_id = u.id
-      LEFT JOIN regions r ON c.region_code = r.code
     `;
 
     let params = [];
@@ -155,6 +156,9 @@ router.get("/", async (req, res) => {
     if (sport) {
       params.push(sport);
       conditions.push(`c.sport_id = $${params.length}`);
+    }
+    if (coaching === 'true') {
+      conditions.push(`c.coaching = true`);
     }
 
     // 검색어가 있으면 name, location, region_code, region_name에서 검색
@@ -174,7 +178,21 @@ router.get("/", async (req, res) => {
     sql += " ORDER BY c.created_at DESC";
 
     const result = await pool.query(sql, params);
-    res.json({ count: result.rows.length, clubs: result.rows });
+
+    const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+    const clubs = result.rows.map(club => {
+      let days = "";
+      if (club.days_of_week && club.days_of_week.length > 0) {
+        days = club.days_of_week.map(d => dayNames[d]).join(", ");
+      }
+      return {
+        ...club,
+        days,
+        image_url: "/images/default-club.jpg"  // 고정 이미지
+      };
+    });
+
+    res.json({ count: clubs.length, clubs: clubs });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "목록 조회 실패" });
@@ -189,7 +207,14 @@ router.get("/:id", async (req, res) => {
     const result = await pool.query("SELECT * FROM clubs WHERE id = $1", [id]);
     if (result.rows.length === 0)
       return res.status(404).json({ message: "없음" });
-    res.json(result.rows[0]);
+
+    // 고정 이미지 URL 추가
+    const club = {
+      ...result.rows[0],
+      image_url: "/images/default-club.jpg"
+    };
+
+    res.json(club);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "에러 발생" });
@@ -202,19 +227,162 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
     const clubId = req.params.id;
     const userId = req.user.id;
 
+    // 1. 동호회 존재 여부 및 공개 설정 확인
+    const clubResult = await pool.query("SELECT is_public FROM clubs WHERE id = $1", [clubId]);
+    if (clubResult.rows.length === 0) {
+      return res.status(404).json({ message: "존재하지 않는 동호회입니다." });
+    }
+    const { is_public } = clubResult.rows[0];
 
-    const check = await pool.query(
+    // 2. 이미 가입된 멤버인지 확인
+    const memberCheck = await pool.query(
       "SELECT * FROM club_members WHERE club_id=$1 AND user_id=$2",
       [clubId, userId]
     );
-    if (check.rows.length > 0)
-      return res.status(409).json({ message: "이미 가입됨" });
+    if (memberCheck.rows.length > 0) {
+      return res.status(409).json({ message: "이미 가입된 동호회입니다." });
+    }
 
-    await pool.query(
-      `INSERT INTO club_members (club_id, user_id) VALUES ($1, $2)`,
-      [clubId, userId]
+    if (is_public) {
+      // 3-A. 공개 동호회: 즉시 가입
+      await pool.query(
+        `INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'MEMBER')`,
+        [clubId, userId]
+      );
+      return res.status(200).json({ message: "가입 성공" });
+    } else {
+      // 3-B. 비공개 동호회: 가입 신청
+      // 이미 신청 중인지 확인
+      const appCheck = await pool.query(
+        "SELECT * FROM club_applications WHERE club_id=$1 AND user_id=$2 AND status='REQUESTED'",
+        [clubId, userId]
+      );
+      if (appCheck.rows.length > 0) {
+        return res.status(409).json({ message: "이미 가입 신청이 진행 중입니다." });
+      }
+
+      await pool.query(
+        `INSERT INTO club_applications (club_id, user_id, mode, status) VALUES ($1, $2, 'quick', 'REQUESTED')`,
+        [clubId, userId]
+      );
+      return res.status(200).json({ message: "가입 신청이 완료되었습니다. 승인을 기다려주세요." });
+    }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "에러 발생" });
+  }
+});
+
+// 5. 신청 목록 조회 (방장 전용)
+router.get("/:id/applications", authenticateToken, async (req, res) => {
+  try {
+    const clubId = req.params.id;
+    const userId = req.user.id;
+
+    // 방장 권한 확인
+    const club = await pool.query("SELECT owner_user_id FROM clubs WHERE id = $1", [clubId]);
+    if (club.rows.length === 0) return res.status(404).json({ message: "동호회 없음" });
+    if (club.rows[0].owner_user_id !== userId) {
+      return res.status(403).json({ message: "권한이 없습니다." });
+    }
+
+    // 신청 목록 조회 (유저 정보 포함)
+    const query = `
+      SELECT ca.*, u.name as user_name, u.email as user_email
+      FROM club_applications ca
+      JOIN users u ON ca.user_id = u.id
+      WHERE ca.club_id = $1
+      ORDER BY ca.created_at DESC
+    `;
+    const result = await pool.query(query, [clubId]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "에러 발생" });
+  }
+});
+
+// 6. 신청 승인
+router.post("/:id/applications/:appId/approve", authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id: clubId, appId } = req.params;
+    const userId = req.user.id;
+
+    await client.query("BEGIN");
+
+    // 방장 권한 확인
+    const club = await client.query("SELECT owner_user_id FROM clubs WHERE id = $1", [clubId]);
+    if (club.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "동호회 없음" });
+    }
+    if (club.rows[0].owner_user_id !== userId) {
+      await client.query("ROLLBACK");
+      return res.status(403).json({ message: "권한이 없습니다." });
+    }
+
+    // 신청 내역 확인
+    const app = await client.query("SELECT * FROM club_applications WHERE id = $1 AND club_id = $2", [appId, clubId]);
+    if (app.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ message: "신청 내역 없음" });
+    }
+    if (app.rows[0].status !== 'REQUESTED') {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ message: "이미 처리된 신청입니다." });
+    }
+
+    const applicantId = app.rows[0].user_id;
+
+    // 멤버 추가
+    await client.query(
+      "INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'MEMBER') ON CONFLICT DO NOTHING",
+      [clubId, applicantId]
     );
-    res.json({ message: "가입 성공" });
+
+    // 신청 상태 업데이트
+    await client.query(
+      "UPDATE club_applications SET status = 'APPROVED', decided_by = $1, decided_at = NOW() WHERE id = $2",
+      [userId, appId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ message: "승인 완료" });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ message: "에러 발생" });
+  } finally {
+    client.release();
+  }
+});
+
+// 7. 신청 거절
+router.post("/:id/applications/:appId/reject", authenticateToken, async (req, res) => {
+  try {
+    const { id: clubId, appId } = req.params;
+    const userId = req.user.id;
+
+    // 방장 권한 확인
+    const club = await pool.query("SELECT owner_user_id FROM clubs WHERE id = $1", [clubId]);
+    if (club.rows.length === 0) return res.status(404).json({ message: "동호회 없음" });
+    if (club.rows[0].owner_user_id !== userId) {
+      return res.status(403).json({ message: "권한이 없습니다." });
+    }
+
+    // 신청 상태 업데이트
+    const result = await pool.query(
+      "UPDATE club_applications SET status = 'REJECTED', decided_by = $1, decided_at = NOW() WHERE id = $2 AND club_id = $3 AND status = 'REQUESTED' RETURNING *",
+      [userId, appId, clubId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: "신청 내역이 없거나 이미 처리되었습니다." });
+    }
+
+    res.json({ message: "거절 완료" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "에러 발생" });

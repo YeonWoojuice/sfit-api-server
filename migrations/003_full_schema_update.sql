@@ -180,6 +180,8 @@ CREATE TABLE IF NOT EXISTS club_applications (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_club_apps_unique_requested ON club_applications(club_id, user_id) WHERE status = 'REQUESTED';
+CREATE INDEX IF NOT EXISTS idx_club_applications_club_id ON club_applications(club_id);
+CREATE INDEX IF NOT EXISTS idx_club_applications_user_id ON club_applications(user_id);
 
 -- ============================================
 -- 6. Flash Meetups

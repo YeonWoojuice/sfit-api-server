@@ -27,6 +27,8 @@ router.post("/", authenticateToken, async (req, res) => {
       end_time,
     } = req.body;
     const hostUserId = req.user.id;
+    console.log('POST /flashes body:', req.body);
+    console.log('attachment_id:', attachment_id);
 
     // Map legacy fields
     const finalSportId = sport_id || sport;
@@ -116,7 +118,8 @@ router.post("/", authenticateToken, async (req, res) => {
 
     res.status(201).json({
       message: "번개 생성 완료!",
-      flash: newFlash.rows[0]
+      flash: newFlash.rows[0],
+      received_attachment_id: attachment_id
     });
   } catch (err) {
     console.error("번개 생성 중 오류 발생:", err);
@@ -131,6 +134,8 @@ router.get("/", async (req, res) => {
 
     let sql = `
       SELECT f.*, u.name as host_name,
+             0 as rating,
+             (f.start_at::date - CURRENT_DATE) as d_day_diff,
              (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members
       FROM flash_meetups f
       JOIN users u ON f.host_user_id = u.id
@@ -153,7 +158,18 @@ router.get("/", async (req, res) => {
     sql += " ORDER BY f.start_at ASC";
 
     const result = await pool.query(sql, params);
-    res.json({ count: result.rows.length, flashes: result.rows });
+
+    const flashes = result.rows.map(flash => {
+      const diff = flash.d_day_diff;
+      let d_day;
+      if (diff === 0) d_day = "D-Day";
+      else if (diff > 0) d_day = `D-${diff}`;
+      else d_day = `D+${Math.abs(diff)}`;
+
+      return { ...flash, d_day };
+    });
+
+    res.json({ count: flashes.length, flashes: flashes });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "조회 실패" });

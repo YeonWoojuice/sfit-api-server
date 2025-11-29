@@ -12,6 +12,8 @@ const createApp = () => {
 
   app.use(cors());
   app.use(express.json());
+  app.use('/uploads', express.static('uploads'));
+  app.use('/images', express.static('images'));  // 이미지 폴더 정적 파일 제공
 
   // 헬스 체크
   app.get("/", (req, res) => {

@@ -14,5 +14,6 @@ router.use("/auth", authRouter);
 router.use("/flashes", flashesRouter);
 router.use("/users", require("./users"));
 router.use("/admin", require("./admin"));
+router.use("/attachments", require("./attachments"));
 
 module.exports = router;
