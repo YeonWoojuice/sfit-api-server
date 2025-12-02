@@ -144,8 +144,17 @@ router.post("/", authenticateToken, async (req, res) => {
       flash: formattedFlash,
       received_attachment_id: attachment_id
     });
+
   } catch (err) {
     console.error("번개 생성 중 오류 발생:", err);
+
+    // DB 제약 조건 위반 처리 (Check Violation)
+    if (err.code === '23514') {
+      if (err.constraint === 'flash_meetups_capacity_max_check') {
+        return res.status(400).json({ message: "최대 인원은 설정된 범위를 초과할 수 없습니다." });
+      }
+    }
+
     res.status(500).json({ message: "서버 에러" });
   }
 });

@@ -516,7 +516,7 @@
 | `start_time` | String | Y | 시작 시간 (HH:mm) | "10:00" |
 | `end_time` | String | Y | 종료 시간 (HH:mm) | "12:00" |
 | `capacity_min` | Integer | N | 최소 인원 (기본 3) | 2 |
-| `capacity_max` | Integer | N | 최대 인원 (기본 25) | 5 |
+| `capacity_max` | Integer | N | 최대 인원 (기본 25, 최대 50) | 5 |
 | `level_min` | Integer | N | 최소 레벨 (기본 1) | 1 |
 | `level_max` | Integer | N | 최대 레벨 (기본 5) | 5 |
 | `attachment_id` | String | N | 이미지 ID | "uuid..." |
@@ -906,6 +906,40 @@
       "is_host": false
     }
   ]
+  ```
+
+### 5.6 내 모임 통합 조회 (동호회 + 번개)
+- **URL**: `GET /api/users/me/meetings`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 내가 가입한 동호회와 참여한 번개 모임을 한 번에 조회합니다.
+- **응답**:
+  ```json
+  {
+    "clubs": [
+      {
+        "id": "uuid...",
+        "name": "축구 동호회",
+        "region_code": "SEOUL",
+        "sport_id": 2,
+        "attachment_id": "uuid...",
+        "my_role": "MEMBER",
+        "joined_at": "2024-01-01T00:00:00.000Z",
+        "member_count": 15
+      }
+    ],
+    "flashes": [
+      {
+        "id": "uuid...",
+        "name": "한강 러닝",
+        "date": "2024-12-25",
+        "region_code": "SEOUL",
+        "sport_id": 5,
+        "attachment_id": "uuid...",
+        "my_state": "JOINED",
+        "is_host": false
+      }
+    ]
+  }
   ```
 
 ---

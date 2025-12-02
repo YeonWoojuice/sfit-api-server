@@ -155,9 +155,9 @@ exports.getMyFlashes = async (req, res) => {
                 f.attachment_id,
                 fa.state as my_state,
                 CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host
-            FROM flash_attendees fa
-            JOIN flash_meetups f ON fa.meetup_id = f.id
-            WHERE fa.user_id = $1 AND fa.state = 'JOINED'
+            FROM flash_meetups f
+            LEFT JOIN flash_attendees fa ON f.id = fa.meetup_id AND fa.user_id = $1
+            WHERE f.host_user_id = $1 OR (fa.user_id = $1 AND fa.state = 'JOINED')
             ORDER BY f.start_at DESC
         `;
         const { rows } = await pool.query(query, [userId]);
@@ -171,6 +171,55 @@ exports.getMyFlashes = async (req, res) => {
         res.json(formattedRows);
     } catch (error) {
         console.error('getMyFlashes error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+};
+
+// 내 모임 통합 조회 (동호회 + 번개)
+exports.getMyMeetings = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        // 1. 내 동호회 조회
+        const clubsQuery = `
+             SELECT 
+                c.id, c.name, c.region_code, c.sport_id, 
+                c.attachment_id,
+                cm.role as my_role, cm.joined_at,
+                (SELECT COUNT(*) FROM club_members WHERE club_id = c.id AND state = 'MEMBER') as member_count
+            FROM club_members cm
+            JOIN clubs c ON cm.club_id = c.id
+            WHERE cm.user_id = $1 AND cm.state = 'MEMBER'
+            ORDER BY cm.joined_at DESC
+        `;
+        const clubsResult = await pool.query(clubsQuery, [userId]);
+
+        // 2. 내 번개 조회
+        const flashesQuery = `
+            SELECT 
+                f.id, f.name, f.start_at, f.region_code, f.sport_id,
+                f.attachment_id,
+                fa.state as my_state,
+                CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host
+            FROM flash_meetups f
+            LEFT JOIN flash_attendees fa ON f.id = fa.meetup_id AND fa.user_id = $1
+            WHERE f.host_user_id = $1 OR (fa.user_id = $1 AND fa.state = 'JOINED')
+            ORDER BY f.start_at DESC
+        `;
+        const flashesResult = await pool.query(flashesQuery, [userId]);
+
+        const formattedFlashes = flashesResult.rows.map(row => {
+            const { start_at, ...rest } = row;
+            const dateStr = new Date(start_at).toISOString().split('T')[0];
+            return { ...rest, date: dateStr };
+        });
+
+        res.json({
+            clubs: clubsResult.rows,
+            flashes: formattedFlashes
+        });
+
+    } catch (error) {
+        console.error('getMyMeetings error:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
 };
