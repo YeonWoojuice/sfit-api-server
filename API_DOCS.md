@@ -123,12 +123,50 @@
 ---
 
 ### 1.5 로그아웃
-- **URL**: `POST /api/auth/logout`
 
-**요청 본문**
-```json
-{ "refreshToken": "..." }
-```
+## 1. 기본 정보
+
+---
+
+| 항목 | 내용 |
+| --- | --- |
+| api 이름 | 로그아웃 |
+| End Point | /api/auth/logout |
+| method | POST |
+| 인증 여부 | X |
+| 설명 | 사용자의 리프레시 토큰을 무효화하여 로그아웃 처리합니다. |
+
+## 2. Request
+
+---
+
+### 2-1. Body
+
+### **바디 (Body)**
+
+| **필드명** | **타입** | **필수 여부** | **설명** | 프론트엔드 매칭 필드 |
+| --- | --- | --- | --- | --- |
+| `refreshToken` | String | Y | 리프레시 토큰 | `refreshToken` |
+
+## **4. 응답 (Response)**
+
+---
+
+### **4-1. 성공 (204 No Content)**
+
+- **상황**: 로그아웃 성공 (또는 이미 만료된 토큰이라도 보안상 성공 처리)
+- **응답 본문**: 없음 (Body Empty)
+
+### **4-2. 실패 (500 Internal Server Error)**
+
+- **상황**: 서버 내부 오류
+- **응답 본문**:
+    
+    ```json
+    {
+      "message": "Server error"
+    }
+    ```
 
 ---
 
@@ -139,6 +177,12 @@
 - **Method**: `POST`
 - **인증 여부**: 필수 (Authorization 인증 필수)
 - **설명**: 새로운 동호회를 생성, 생성한 사용자는 자동으로 모임장, 리더 **(LEADER)** 권한으로 가입됨
+
+> [!IMPORTANT]
+> **이미지 업로드 플로우**
+> 1. **먼저** `/api/attachments`로 이미지 파일을 업로드합니다 (`multipart/form-data`)
+> 2. 응답으로 받은 `id` 값을 `attachment_id` 필드에 포함시켜 동호회 생성 요청을 보냅니다
+> 3. 백엔드에서 `attachment_id`를 통해 이미지와 동호회를 연결합니다
 
 **Request Header**
 | key | value | 필수 여부 | 설명 |
@@ -161,6 +205,8 @@
 | `capacity_max` | Integer | N | 최대 인원 (기본 25) | 20 |
 | `level_min` | int | N | 최소 레벨 (1) | 1 |
 | `level_max` | int | N | 최대 레벨 (5) | 5 |
+| `is_public` | Boolean | N | 공개 여부 (기본 true) | true |
+| `attachment_id` | String (UUID) | N | 이미지 ID (7.1 파일 업로드로 받은 `id`) | "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2" |
 
 **응답 (Response)**
 
@@ -177,6 +223,7 @@
     "location": "강남구",
     "sport_id": 2,
     "owner_user_id": "uuid-string",
+    "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2",
     "created_at": "2024-02-25T09:00:00.000Z"
   }
 }
@@ -217,27 +264,92 @@
 | `region` | String | N | 지역 코드 (예: SEOUL) | `region` |
 | `sport` | Integer | N | 종목 ID (예: 2) | `sport` |
 | `search` | String | N | 검색어 (이름, 지역명 등) | `search` |
+| `coaching` | String | N | 코칭 여부 필터 ("true") | `coaching` |
 
 **응답 (Response)**
 ```json
 {
-  "count": 5,
+  "count": 2,
   "clubs": [
     {
-      "id": 1,
+      "id": "uuid-string",
       "name": "새벽 축구단",
       "explain": "매주 새벽에 찹니다.",
       "region_code": "SEOUL",
-      "region_name": "서울",
+      "location": "강남구",
       "sport_id": 2,
+      "owner_user_id": "uuid-string",
+      "start_time": "06:00:00",
+      "end_time": "08:00:00",
+      "days_of_week": [1, 3],
+      "days": "월, 수",
+      "capacity_min": 10,
+      "capacity_max": 20,
+      "level_min": 1,
+      "level_max": 5,
+      "is_public": true,
+      "coaching": true,
+      "attachment_id": "uuid-string",
+      "image_url": "/images/default-club.jpg",
       "owner_name": "홍길동",
-      "current_members": "15",
-      "created_at": "2023-12-25T..."
+      "current_members": 15,
+      "created_at": "2024-11-20T09:30:00.000Z"
     },
-    ...
+    {
+      "id": "uuid-string-2",
+      "name": "주말 농구 동호회",
+      "explain": "주말에 농구 즐기실 분들 환영합니다!",
+      "region_code": "BUSAN",
+      "location": "해운대구",
+      "sport_id": 3,
+      "owner_user_id": "uuid-string-2",
+      "start_time": "14:00:00",
+      "end_time": "16:00:00",
+      "days_of_week": [0, 6],
+      "days": "일, 토",
+      "capacity_min": 5,
+      "capacity_max": 12,
+      "level_min": 2,
+      "level_max": 4,
+      "is_public": false,
+      "coaching": false,
+      "attachment_id": null,
+      "image_url": null,
+      "owner_name": "김영희",
+      "current_members": 8,
+      "created_at": "2024-11-25T14:20:00.000Z"
+    }
   ]
 }
 ```
+
+**응답 필드 설명**
+| 필드명 | 타입 | 설명 |
+| :--- | :--- | :--- |
+| `count` | Integer | 조회된 동호회 총 개수 |
+| `clubs` | Array | 동호회 목록 |
+| `clubs[].id` | String (UUID) | 동호회 고유 ID |
+| `clubs[].name` | String | 동호회 이름 |
+| `clubs[].explain` | String | 동호회 설명 |
+| `clubs[].region_code` | String | 지역 코드 |
+| `clubs[].location` | String | 상세 위치 |
+| `clubs[].sport_id` | Integer | 종목 ID |
+| `clubs[].owner_user_id` | String (UUID) | 모임장 사용자 ID |
+| `clubs[].start_time` | String | 시작 시간 (HH:mm:ss) |
+| `clubs[].end_time` | String | 종료 시간 (HH:mm:ss) |
+| `clubs[].days_of_week` | Array[Int] | 요일 배열 (0=일, 1=월, ... 6=토) |
+| `clubs[].days` | String | 요일 한글 표시 (예: "월, 수, 금") |
+| `clubs[].capacity_min` | Integer | 최소 인원 |
+| `clubs[].capacity_max` | Integer | 최대 인원 |
+| `clubs[].level_min` | Integer | 최소 레벨 |
+| `clubs[].level_max` | Integer | 최대 레벨 |
+| `clubs[].is_public` | Boolean | 공개 여부 |
+| `clubs[].coaching` | Boolean | 코칭 가능 여부 |
+| `clubs[].attachment_id` | String (UUID)/null | 첨부파일 ID (이미지가 있을 경우) |
+| `clubs[].image_url` | String | 이미지 경로 (고정 이미지) |
+| `clubs[].owner_name` | String | 모임장 이름 |
+| `clubs[].current_members` | Integer | 현재 멤버 수 |
+| `clubs[].created_at` | String | 생성 일시 (ISO 8601) |
 
 ---
 
@@ -267,6 +379,8 @@
       "capacity_max": 20,
       "level_min": 1,
       "level_max": 3,
+      "attachment_id": "uuid-string",
+      "image_url": "/images/default-club.jpg",
       "created_at": "..."
     }
     ```
@@ -291,21 +405,73 @@
 
 **응답 (Response)**
 
-**성공 (200 OK)**
+**성공 (200 OK) - 즉시 가입 (공개 동호회)**
 ```json
 { "message": "가입 성공" }
 ```
 
-**실패 (409 Conflict)**
-이미 가입된 경우
+**성공 (200 OK) - 가입 신청 (비공개 동호회)**
 ```json
-{ "message": "이미 가입됨" }
+{ "message": "가입 신청이 완료되었습니다. 승인을 기다려주세요." }
+```
+
+**실패 (404 Not Found)**
+동호회가 존재하지 않는 경우
+```json
+{ "message": "존재하지 않는 동호회입니다." }
+```
+
+**실패 (409 Conflict)**
+이미 가입되었거나 신청 중인 경우
+```json
+{ "message": "이미 가입된 동호회입니다." }
+// 또는
+{ "message": "이미 가입 신청이 진행 중입니다." }
 ```
 
 **실패 (401 Unauthorized)**
 로그인하지 않은 경우
 ```json
 { "message": "유효하지 않은 토큰입니다." }
+```
+
+
+### 2.5 신청 목록 조회 (방장 전용)
+- **URL**: `GET /api/clubs/:id/applications`
+- **헤더**: `Authorization: Bearer <accessToken>`
+
+**응답 (Response)**
+```json
+[
+  {
+    "id": "uuid",
+    "club_id": "uuid",
+    "user_id": "uuid",
+    "mode": "quick",
+    "status": "REQUESTED",
+    "created_at": "2024-01-01T00:00:00Z",
+    "user_name": "신청자이름",
+    "user_email": "user@example.com"
+  }
+]
+```
+
+### 2.6 신청 승인 (방장 전용)
+- **URL**: `POST /api/clubs/:id/applications/:appId/approve`
+- **헤더**: `Authorization: Bearer <accessToken>`
+
+**응답 (Response)**
+```json
+{ "message": "승인 완료" }
+```
+
+### 2.7 신청 거절 (방장 전용)
+- **URL**: `POST /api/clubs/:id/applications/:appId/reject`
+- **헤더**: `Authorization: Bearer <accessToken>`
+
+**응답 (Response)**
+```json
+{ "message": "거절 완료" }
 ```
 
 ---
@@ -315,6 +481,12 @@
 ### 3.1 번개 생성
 - **URL**: `POST /api/flashes`
 - **헤더**: `Authorization: Bearer <accessToken>`
+
+> [!IMPORTANT]
+> **이미지 업로드 플로우**
+> 1. **먼저** `/api/attachments`로 이미지 파일을 업로드합니다 (`multipart/form-data`)
+> 2. 응답으로 받은 `id` 값을 `attachment_id` 필드에 포함시켜 번개 생성 요청을 보냅니다
+> 3. 백엔드에서 `attachment_id`를 통해 이미지와 번개를 연결합니다
 
 **요청 본문 (Request Body)**
 ```json
@@ -328,18 +500,51 @@
   "start_time": 19,
   "end_time": 21,
   "capacity_min": 2,
-  "capacity_max": 5
+  "capacity_max": 5,
+  "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
 }
 ```
 
 **필드 설명**
 | 필드명 | 타입 | 필수 | 설명 | 비고 |
 | :--- | :--- | :--- | :--- | :--- |
+| `name` | String | Y | 번개 이름 | - |
+| `explain` | String | Y | 번개 설명 | - |
+| `region_code` | String | Y | 지역 코드 | - |
+| `sport_id` | Integer | Y | 종목 ID | - |
 | `start_at` | String | Y | 시작 일시 | ISO 8601 날짜 문자열 |
 | `end_at` | String | Y | 종료 일시 | ISO 8601 날짜 문자열 |
-| `start_time` | Integer | Y | 시작 시간 | **0~24 정수** |
-| `end_time` | Integer | Y | 종료 시간 | **0~24 정수** |
+| `start_time` | Integer/String | Y | 시작 시간 | **0~24 정수** 또는 "HH:mm" 형식 |
+| `end_time` | Integer/String | Y | 종료 시간 | **0~24 정수** 또는 "HH:mm" 형식 |
+| `capacity_min` | Integer | N | 최소 인원 (기본 3) | - |
+| `capacity_max` | Integer | N | 최대 인원 (기본 25) | - |
+| `attachment_id` | String (UUID) | N | 이미지 ID (7.1 파일 업로드로 받은 `id`) | "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2" |
 
+---
+
+### 3.2 번개 목록 조회
+- **URL**: `GET /api/flashes`
+- **쿼리 파라미터**:
+    - `region`: 지역 코드 (예: SEOUL)
+    - `sport`: 종목 ID (예: 1)
+- **응답**:
+  ```json
+  {
+    "count": 5,
+    "flashes": [
+      {
+        "id": "uuid",
+        "name": "한강 러닝",
+        "start_at": "2025-12-25T10:00:00.000Z",
+        "d_day": "D-27",
+        "rating": 0,
+        "image_url": "/uploads/12345.jpg",
+        "host_name": "방장이름",
+        "current_members": 3
+      }
+    ]
+  }
+  ```
 ---
 
 ## 4. Meta Data (메타 데이터)
@@ -349,8 +554,17 @@
 - **응답**:
   ```json
   [
-    { "id": "SEOUL", "code": "SEOUL", "name": "서울", "parent_code": null },
-    ...
+    { "code": "BUSAN", "name": "부산", "parent_code": null },
+    { "code": "CHUNGBUK", "name": "충북", "parent_code": null },
+    { "code": "CHUNGNAM", "name": "충남", "parent_code": null },
+    { "code": "DAEGU", "name": "대구", "parent_code": null },
+    { "code": "DAEJEON", "name": "대전", "parent_code": null },
+    { "code": "GWANGJU", "name": "광주", "parent_code": null },
+    { "code": "GYEONGBUK", "name": "경북", "parent_code": null },
+    { "code": "GYEONGGI", "name": "경기", "parent_code": null },
+    { "code": "INCHEON", "name": "인천", "parent_code": null },
+    { "code": "SEOUL", "name": "서울", "parent_code": null },
+    { "code": "ULSAN", "name": "울산", "parent_code": null }
   ]
   ```
 
@@ -370,13 +584,20 @@
 - **응답**:
   ```json
   {
-    "today": "2023-11-28",
+    "today": "2025-11-28",
     "days": ["일", "월", "화", "수", "목", "금", "토"],
     "dates": [
-      { "date": "2023-11-28", "day": "화", "day_index": 2 },
-      ...
+      { "date": "2025-11-28", "day": "금", "day_index": 5 },
+      { "date": "2025-11-29", "day": "토", "day_index": 6 },
+      { "date": "2025-11-30", "day": "일", "day_index": 0 },
+      { "date": "2025-12-01", "day": "월", "day_index": 1 },
+      { "date": "2025-12-02", "day": "화", "day_index": 2 },
+      { "date": "2025-12-03", "day": "수", "day_index": 3 },
+      { "date": "2025-12-04", "day": "목", "day_index": 4 }
     ],
-    "time_slots": [0, 1, 2, ..., 23]
+    "time_slots": [
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23
+    ]
   }
   ```
 
@@ -384,17 +605,94 @@
 
 ## 5. Users (사용자)
 
-### 5.1 프로필 조회
+### 5.1 내 정보 조회
 - **URL**: `GET /api/users/me`
 - **헤더**: `Authorization: Bearer <accessToken>`
+- **응답 (Response)**
+  ```json
+  {
+    "id": "uuid...",
+    "username": "user123",
+    "name": "홍길동",
+    "email": "user@test.com",
+    "phone": "010-1234-5678",
+    "role": "USER",
+    "created_at": "2024-01-01T00:00:00.000Z",
+    "gender": "M",
+    "age": 25,
+    "region_code": "SEOUL",
+    "level": "중급",
+    "sports": [1, 2],
+    "badge_summary": null,
+    "introduction": "안녕하세요!",
+    "attachment_id": "uuid...",
+    "avatar_url": "/api/attachments/uuid.../file"
+  }
+  ```
 
-### 5.2 프로필 수정
+### 5.2 내 정보 수정
 - **URL**: `PATCH /api/users/me`
-- **요청 본문**: `{ "region_code": "SEOUL", "sports": [1, 5] }`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **요청 본문 (Request Body)**
+  ```json
+  {
+    "name": "홍길동",
+    "phone": "010-1234-5678",
+    "region_code": "SEOUL",
+    "sports": [1, 2],
+    "introduction": "자기소개 수정",
+    "age": 26,
+    "gender": "M",
+    "level": "상급"
+  }
+  ```
+- **응답**: `{ "message": "정보가 수정되었습니다." }`
 
 ### 5.3 아바타 수정
 - **URL**: `PUT /api/users/me/avatar`
-- **요청 본문**: `{ "avatarUrl": "..." }`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **요청 본문**: `{ "attachment_id": "uuid..." }`
+- **응답**: `{ "message": "아바타가 수정되었습니다." }`
+
+### 5.4 내 동호회 목록
+- **URL**: `GET /api/users/me/clubs`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **응답**:
+  ```json
+  [
+    {
+      "id": "uuid...",
+      "name": "축구 동호회",
+      "region_code": "SEOUL",
+      "sport_id": 2,
+      "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file",
+      "my_role": "MEMBER",
+      "joined_at": "2024-01-01T00:00:00.000Z",
+      "member_count": 15
+    }
+  ]
+  ```
+
+### 5.5 내 번개 목록
+- **URL**: `GET /api/users/me/flashes`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **응답**:
+  ```json
+  [
+    {
+      "id": "uuid...",
+      "name": "한강 러닝",
+      "start_at": "2024-12-25T10:00:00.000Z",
+      "region_code": "SEOUL",
+      "sport_id": 5,
+      "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file",
+      "my_state": "JOINED",
+      "is_host": false
+    }
+  ]
+  ```
 
 ---
 
@@ -403,3 +701,70 @@
 ### 6.1 대시보드 통계
 - **URL**: `GET /api/admin/dashboard`
 - **헤더**: `Authorization: Bearer <accessToken>`
+
+---
+
+## 7. Attachments (파일 업로드)
+
+### 7.1 파일 업로드
+- **URL**: `POST /api/attachments`
+- **헤더**: `Authorization: Bearer <accessToken>`, `Content-Type: multipart/form-data`
+- **요청 본문 (Request Body)**:
+    *   `Content-Type: multipart/form-data` 필수
+
+| 필드명 | 타입 | 필수 여부 | 설명 | 예시 |
+| :--- | :--- | :--- | :--- | :--- |
+| `file` | File | Y | 업로드할 이미지 파일 (JPG, PNG, GIF, WEBP) | `profile.jpg` (Binary) |
+
+- **응답 (Response)**:
+  ```json
+  {
+    "id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2",  // [중요] 이 ID를 동호회/번개 생성 API에 보내야 함
+    "file_path": "/uploads/1764340763627-817744889.jpg", // 이미지 접근 경로 (서버 주소 필요)
+    "file_name": "my_profile.jpg",                  // 원본 파일명
+    "mime_type": "image/jpeg",                      // 파일 타입
+    "size": 1024576,                                // 파일 크기 (bytes)
+    "created_at": "2025-11-29T00:30:00.000Z"        // 업로드 일시
+  }
+  
+  ```
+
+- **에러 응답 (Error Response)**:
+
+| 상태 코드 | 메시지 | 설명 |
+| :--- | :--- | :--- |
+| `400` | `파일이 없습니다.` | `file` 파라미터가 누락된 경우 |
+| `400` | `이미지 파일만 업로드 가능합니다...` | 지원하지 않는 파일 형식인 경우 |
+| `400` | `File too large` | 파일 크기가 5MB를 초과한 경우 |
+| `401` | `로그인이 필요합니다.` | 토큰이 없거나 만료된 경우 |
+| `500` | `파일 업로드 실패` | 서버 내부 오류 |
+
+---
+
+### 7.2 이미지 파일 조회
+- **URL**: `GET /api/attachments/:id/file`
+- **설명**: attachment_id를 사용하여 이미지 파일을 직접 조회합니다.
+- **인증**: 불필요 (공개 접근)
+
+**요청 파라미터 (URL Path)**
+| 필드명 | 타입 | 필수 | 설명 |
+| :--- | :--- | :--- | :--- |
+| `id` | String (UUID) | Y | 첨부파일 ID |
+
+**사용 예시**
+```html
+<!-- 프론트엔드에서 이미지 표시 -->
+<img src="/api/attachments/a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2/file" alt="동호회 이미지" />
+```
+
+**응답**
+- **성공 (200 OK)**: 이미지 파일 직접 반환 (바이너리)
+  - `Content-Type`: 이미지 MIME 타입 (예: `image/jpeg`)
+  - `Content-Disposition`: `inline; filename="원본파일명.jpg"`
+
+**에러 응답**
+| 상태 코드 | 메시지 | 설명 |
+| :--- | :--- | :--- |
+| `404` | `파일을 찾을 수 없습니다.` | DB에 해당 attachment_id가 없는 경우 |
+| `404` | `파일이 존재하지 않습니다.` | DB에는 있지만 실제 파일이 없는 경우 |
+| `500` | `파일 조회 실패` | 서버 내부 오류 |
