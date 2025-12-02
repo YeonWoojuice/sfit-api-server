@@ -101,9 +101,8 @@ exports.updateAvatar = async (req, res) => {
     const userId = req.user.id;
     const { attachment_id } = req.body;
 
-    if (!attachment_id) {
-        return res.status(400).json({ message: 'attachment_id가 필요합니다.' });
-    }
+    // attachment_id가 없거나 빈 문자열이면 null로 처리 (아바타 삭제)
+    const finalAttachmentId = attachment_id || null;
 
     try {
         // 프로필이 없으면 생성 후 업데이트, 있으면 업데이트
@@ -113,7 +112,7 @@ exports.updateAvatar = async (req, res) => {
             ON CONFLICT (user_id) 
             DO UPDATE SET attachment_id = $2, updated_at = NOW()
         `;
-        await pool.query(query, [userId, attachment_id]);
+        await pool.query(query, [userId, finalAttachmentId]);
 
         res.json({ message: '아바타가 수정되었습니다.' });
     } catch (error) {

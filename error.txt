@@ -1,0 +1,4 @@
+Error: Avatar update failed: 400 {"message":"attachment_id가 필요합니다."}
+Error: Avatar update failed: 400 {"message":"attachment_id가 필요합니다."}
+    at runTest (C:\sfit\sfit-api-server\test_avatar_empty_string.js:37:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

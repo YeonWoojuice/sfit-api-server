@@ -191,22 +191,24 @@
 | Content-Type | application/json | O | JSON데이터 전송 |
 
 **Request Body**
-| **필드명** | **타입** | **필수 여부** | **설명** | **예시** |
-| --- | --- | --- | --- | --- |
-| `name` | String | Y | 동호회 이름 | "축구 동호회" |
-| `explain` | String | Y | 동호회 설명 | "매주 토요일 축구" |
-| `region_code` | String | Y | 지역 코드 (regions 테이블 참조) | "SEOUL" |
-| `location` | String | N | 상세 장소 (무슨시 까지만 입력) | "강남구" |
-| `sport_id` | Integer | Y | 종목 ID (sports 테이블 참조) | 2 |
-| `start_time` | String (HH:mm) | Y | 시작 시간 (24시간 형식) | "10:00" |
-| `end_time` | String (HH:mm) | Y | 종료 시간 (시작 시간보다 늦어야 함) | "12:00" |
-| `days_of_week` | Array[Int] | N | 요일 (0=일, 1=월, ... 6=토) | [0, 6] |
-| `capacity_min` | Integer | N | 최소 인원 (기본 3) | 3 |
-| `capacity_max` | Integer | N | 최대 인원 (기본 25) | 20 |
-| `level_min` | int | N | 최소 레벨 (1) | 1 |
-| `level_max` | int | N | 최대 레벨 (5) | 5 |
-| `is_public` | Boolean | N | 공개 여부 (기본 true) | true |
-| `attachment_id` | String (UUID) | N | 이미지 ID (7.1 파일 업로드로 받은 `id`) | "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2" |
+```json
+{
+  "name": "축구 동호회",
+  "explain": "매주 토요일 축구",
+  "region_code": "SEOUL",
+  "location": "강남구",
+  "sport_id": 2,
+  "start_time": "10:00",
+  "end_time": "12:00",
+  "days_of_week": [0, 6],
+  "capacity_min": 3,
+  "capacity_max": 20,
+  "level_min": 1,
+  "level_max": 5,
+  "is_public": true,
+  "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
+}
+```
 
 **응답 (Response)**
 
@@ -478,82 +480,293 @@
 
 ## 3. Flash Meetups (번개 모임)
 
-### 3.1 번개 생성
-- **URL**: `POST /api/flashes`
-- **헤더**: `Authorization: Bearer <accessToken>`
+## 1. 기본 정보
 
-> [!IMPORTANT]
-> **이미지 업로드 플로우**
-> 1. **먼저** `/api/attachments`로 이미지 파일을 업로드합니다 (`multipart/form-data`)
-> 2. 응답으로 받은 `id` 값을 `attachment_id` 필드에 포함시켜 번개 생성 요청을 보냅니다
-> 3. 백엔드에서 `attachment_id`를 통해 이미지와 번개를 연결합니다
+---
 
-**요청 본문 (Request Body)**
+| 항목 | 내용 |
+| --- | --- |
+| api 이름 | 번개 모임 생성 |
+| End Point | /api/flashes |
+| method | POST |
+| 인증 여부 | O (Bearer Token) |
+| 설명 | 새로운 번개 모임을 생성합니다. |
+
+## 2. Request
+
+---
+
+### 2-1. Request Header
+
+| key | value | 필수 여부 | 설명 |
+| --- | --- | --- | --- |
+| Authorization | Bearer <Access Token> | O | 로그인 시 발급받은 JWT 토큰 |
+| Content-Type | application/json | O | JSON 데이터 전송 |
+
+### 2-2. Request Body
+
+| **필드명** | **타입** | **필수** | **설명** | **예시** |
+| --- | --- | --- | --- | --- |
+| `name` | String | Y | 번개 이름 | "한강 러닝 번개" |
+| `explain` | String | Y | 번개 설명 | "가볍게 뛰실 분" |
+| `region_code` | String | Y | 지역 코드 | "SEOUL" |
+| `sport_id` | Integer | Y | 종목 ID | 5 |
+| `date` | String | Y | 날짜 (YYYY-MM-DD) | "2023-12-25" |
+| `start_time` | String | Y | 시작 시간 (HH:mm) | "10:00" |
+| `end_time` | String | Y | 종료 시간 (HH:mm) | "12:00" |
+| `capacity_min` | Integer | N | 최소 인원 (기본 3) | 2 |
+| `capacity_max` | Integer | N | 최대 인원 (기본 25) | 5 |
+| `level_min` | Integer | N | 최소 레벨 (기본 1) | 1 |
+| `level_max` | Integer | N | 최대 레벨 (기본 5) | 5 |
+| `attachment_id` | String | N | 이미지 ID | "uuid..." |
+
+**요청 예시**
+
 ```json
 {
   "name": "한강 러닝 번개",
   "explain": "가볍게 뛰실 분",
   "region_code": "SEOUL",
   "sport_id": 5,
-  "start_at": "2023-12-25T10:00:00.000Z",
-  "end_at": "2023-12-25T12:00:00.000Z",
-  "start_time": 19,
-  "end_time": 21,
+  "date": "2023-12-25",
+  "start_time": "10:00",
+  "end_time": "12:00",
   "capacity_min": 2,
   "capacity_max": 5,
+  "level_min": 1,
+  "level_max": 3,
   "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
 }
 ```
 
-**필드 설명**
-| 필드명 | 타입 | 필수 | 설명 | 비고 |
-| :--- | :--- | :--- | :--- | :--- |
-| `name` | String | Y | 번개 이름 | - |
-| `explain` | String | Y | 번개 설명 | - |
-| `region_code` | String | Y | 지역 코드 | - |
-| `sport_id` | Integer | Y | 종목 ID | - |
-| `start_at` | String | Y | 시작 일시 | ISO 8601 날짜 문자열 |
-| `end_at` | String | Y | 종료 일시 | ISO 8601 날짜 문자열 |
-| `start_time` | Integer/String | Y | 시작 시간 | **0~24 정수** 또는 "HH:mm" 형식 |
-| `end_time` | Integer/String | Y | 종료 시간 | **0~24 정수** 또는 "HH:mm" 형식 |
-| `capacity_min` | Integer | N | 최소 인원 (기본 3) | - |
-| `capacity_max` | Integer | N | 최대 인원 (기본 25) | - |
-| `attachment_id` | String (UUID) | N | 이미지 ID (7.1 파일 업로드로 받은 `id`) | "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2" |
+## 3. 응답 (Response)
 
 ---
 
-### 3.2 번개 목록 조회
-- **URL**: `GET /api/flashes`
-- **쿼리 파라미터**:
-    - `region`: 지역 코드 (예: SEOUL)
-    - `sport`: 종목 ID (예: 1)
-- **응답**:
-  ```json
-  {
-    "count": 5,
-    "flashes": [
-      {
-        "id": "uuid",
-        "name": "한강 러닝",
-        "start_at": "2025-12-25T10:00:00.000Z",
-        "d_day": "D-27",
-        "rating": 0,
-        "image_url": "/uploads/12345.jpg",
-        "host_name": "방장이름",
-        "current_members": 3
-      }
-    ]
-  }
-  ```
+### 3-1. 성공 (201 Created)
+
+- **상황**: 번개 생성 성공
+- **응답 본문**:
+
+    ```json
+    {
+      "message": "번개 생성 완료!",
+      "flash": {
+        "id": "uuid-string",
+        "name": "한강 러닝 번개",
+        "description": "가볍게 뛰실 분",
+        "region_code": "SEOUL",
+        "sport_id": 5,
+        "host_user_id": "uuid-string",
+        "date": "2023-12-25",
+        "start_time": "10:00:00",
+        "end_time": "12:00:00",
+        "days_of_week": [],
+        "capacity_min": 2,
+        "capacity_max": 5,
+        "level_min": 1,
+        "level_max": 3,
+        "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2",
+        "status": "DRAFT",
+        "created_at": "2023-12-01T12:00:00.000Z"
+      },
+      "received_attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
+    }
+    ```
+
+### 3-2. 실패 (400 Bad Request)
+
+- **상황**: 필수 정보 누락 또는 잘못된 데이터 형식
+- **응답 본문**:
+
+    ```json
+    { "message": "필수 정보 누락: ..." }
+    ```
+
 ---
 
-## 4. Meta Data (메타 데이터)
+## 3.2 번개 모임 목록 조회
 
-### 4.1 지역 목록 조회
-- **URL**: `GET /api/meta/regions`
-- **응답**:
-  ```json
-  [
+## 1. 기본 정보
+
+---
+
+| 항목 | 내용 |
+| --- | --- |
+| api 이름 | 번개 모임 목록 조회 |
+| End Point | /api/flashes |
+| method | GET |
+| 인증 여부 | X |
+| 설명 | 조건에 맞는 번개 모임 목록을 조회합니다. |
+
+## 2. Request
+
+---
+
+### 2-1. Query String
+
+이 API는 GET 요청이므로, 데이터를 URL 뒤에 붙여서 보냅니다 (Query String). 별도의 Body는 없습니다.
+
+| **필드명** | **타입** | **필수** | **설명** | **예시** |
+| --- | --- | --- | --- | --- |
+| `region` | String | N | 지역 코드 | `SEOUL` |
+| `sport` | Integer | N | 종목 ID | `1` |
+
+**요청 예시**
+
+- **`GET /api/flashes?region=SEOUL&sport=1`** (서울 지역의 축구 번개 조회)
+
+## 3. 응답 (Response)
+
+---
+
+### 3-1. 성공 (200 OK)
+
+- **상황**: 조회 성공 (결과가 없어도 빈 배열로 성공 응답)
+- **응답 본문**:
+
+```json
+{
+  "count": 2,
+  "flashes": [
+    {
+      "id": "uuid-string",
+      "name": "한강 러닝 번개",
+      "description": "가볍게 뛰실 분",
+      "region_code": "SEOUL",
+      "place_text": "여의도 한강공원",
+      "sport_id": 5,
+      "host_user_id": "uuid-string",
+      "date": "2025-12-25",
+      "start_time": "10:00:00",
+      "end_time": "12:00:00",
+      "days_of_week": [1],
+      "capacity_min": 3,
+      "capacity_max": 10,
+      "level_min": 1,
+      "level_max": 3,
+      "attachment_id": "uuid-string",
+      "status": "DRAFT",
+      "host_name": "방장이름",
+      "rating": 0,
+      "d_day_diff": 23,
+      "current_members": 3,
+      "d_day": "D-23"
+    },
+    {
+      "id": "uuid-string-2",
+      "name": "주말 농구 번개",
+      "description": "농구 한판 하실 분",
+      "region_code": "BUSAN",
+      "place_text": "해운대 농구장",
+      "sport_id": 3,
+      "host_user_id": "uuid-string-2",
+      "date": "2025-12-26",
+      "start_time": "14:00:00",
+      "end_time": "16:00:00",
+      "days_of_week": [6],
+      "capacity_min": 5,
+      "capacity_max": 10,
+      "level_min": 2,
+      "level_max": 4,
+      "attachment_id": null,
+      "status": "DRAFT",
+      "host_name": "김철수",
+      "rating": 0,
+      "d_day_diff": 24,
+      "current_members": 5,
+      "d_day": "D-24"
+    }
+  ]
+}
+```
+
+### 3-2. 실패 (500 Internal Server Error)
+
+- **상황**: 서버 내부 오류 (DB 연결 실패 등)
+- **응답 본문**:
+
+```json
+{ "message": "조회 실패" }
+```
+
+---
+
+## 3.3 번개 모임 참가
+
+## 1. 기본 정보
+
+---
+| api 이름 | 번개 모임 참가 |
+| End Point | /api/flashes/:id/join |
+| method | POST |
+| 인증 여부 | O (Bearer Token) |
+| 설명 | 특정 번개 모임에 참가를 신청합니다. |
+
+## 2. Request
+
+---
+
+### 2-1. Path Variables
+
+| **필드명** | **타입** | **필수** | **설명** | **예시** |
+| --- | --- | --- | --- | --- |
+| `id` | String | Y | 번개 모임 ID (UUID) | "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2" |
+
+### 2-2. Request Body
+
+이 API는 별도의 Body가 필요하지 않습니다.
+
+## 3. 응답 (Response)
+
+---
+
+### 3-1. 성공 (200 OK)
+
+- **상황**: 참가 신청 성공
+- **응답 본문**:
+
+```json
+{
+  "message": "참여 성공"
+}
+```
+
+### 3-2. 실패 (400 Bad Request / 403 Forbidden / 404 Not Found / 409 Conflict)
+
+- **상황 1**: 존재하지 않는 번개 (404)
+    ```json
+    { "message": "존재하지 않는 번개입니다." }
+    ```
+
+- **상황 2**: 방장이 참가 시도 (409)
+    ```json
+    { "message": "방장은 참가 신청할 수 없습니다." }
+    ```
+
+- **상황 3**: 정원 초과 (409)
+    ```json
+    { "message": "정원이 초과되었습니다." }
+    ```
+
+- **상황 4**: 이미 참가한 경우 (409)
+    ```json
+    { "message": "이미 참여함" }
+    ```
+
+- **상황 5**: 레벨 제한 불만족 (403)
+    ```json
+    { "message": "참가 가능한 레벨이 아닙니다. (제한: 1~3, 내 레벨: 5)" }
+    ```
+
+### 3-3. 실패 (500 Internal Server Error)
+
+- **상황**: 서버 내부 오류
+- **응답 본문**:
+
+```json
+{ "message": "에러 발생" }
+```
     { "code": "BUSAN", "name": "부산", "parent_code": null },
     { "code": "CHUNGBUK", "name": "충북", "parent_code": null },
     { "code": "CHUNGNAM", "name": "충남", "parent_code": null },

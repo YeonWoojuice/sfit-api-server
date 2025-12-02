@@ -1,0 +1,4 @@
+Error: User login failed after signup attempt: {"message":"Invalid credentials"}
+Error: User login failed after signup attempt: {"message":"Invalid credentials"}
+    at runTest (C:\sfit\sfit-api-server\test_flash_join.js:51:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

@@ -1,0 +1,4 @@
+Error: Flash creation failed: 500 {"message":"서버 에러"}
+Error: Flash creation failed: 500 {"message":"서버 에러"}
+    at runTest (C:\sfit\sfit-api-server\test_flash_level.js:50:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
