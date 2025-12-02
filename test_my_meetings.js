@@ -39,14 +39,23 @@ async function runTest() {
         const flashes = await flashesRes.json();
         console.log('My Flashes:', flashes);
 
-        // Verify date field in flashes
+        // Verify date field in flashes and absence of image_url/is_public
         if (flashes.length > 0) {
             const firstFlash = flashes[0];
             if (!firstFlash.date) throw new Error('Flash missing date field');
             if (firstFlash.start_at) throw new Error('Flash should not have start_at field');
+            if (firstFlash.image_url) throw new Error('Flash should not have image_url field');
+            if (firstFlash.is_public !== undefined) throw new Error('Flash should not have is_public field');
             console.log('Flash date verification passed:', firstFlash.date);
         } else {
             console.log('No flashes found for user, skipping date verification.');
+        }
+
+        // Verify absence of image_url in clubs
+        if (clubs.length > 0) {
+            const firstClub = clubs[0];
+            if (firstClub.image_url) throw new Error('Club should not have image_url field');
+            if (firstClub.is_public !== undefined) throw new Error('Club should not have is_public field');
         }
 
         console.log('\n=== Test Passed Successfully ===');

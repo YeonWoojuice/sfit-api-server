@@ -879,7 +879,6 @@
       "region_code": "SEOUL",
       "sport_id": 2,
       "attachment_id": "uuid...",
-      "image_url": "/api/attachments/uuid.../file",
       "my_role": "MEMBER",
       "joined_at": "2024-01-01T00:00:00.000Z",
       "member_count": 15
@@ -900,7 +899,6 @@
       "region_code": "SEOUL",
       "sport_id": 5,
       "attachment_id": "uuid...",
-      "image_url": "/api/attachments/uuid.../file",
       "my_state": "JOINED",
       "is_host": false
     }

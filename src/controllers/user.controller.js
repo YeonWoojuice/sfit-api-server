@@ -125,35 +125,14 @@ exports.updateAvatar = async (req, res) => {
 exports.getMyClubs = async (req, res) => {
     const userId = req.user.id;
     try {
-        const query = `
-            SELECT 
-                c.id, c.name, c.region_code, c.sport_id, c.image_url,
-                cm.role as my_role, cm.joined_at,
-                (SELECT COUNT(*) FROM club_members WHERE club_id = c.id AND state = 'MEMBER') as member_count
-            FROM club_members cm
-            JOIN clubs c ON cm.club_id = c.id
-            WHERE cm.user_id = $1 AND cm.state = 'MEMBER'
-            ORDER BY cm.joined_at DESC
-        `;
-        // Note: clubs table might not have image_url column directly if it uses attachment_id. 
-        // But based on API_DOCS, it seems clubs might have image_url or attachment_id.
-        // Let's check the schema again. 003_full_schema_update.sql shows clubs has attachment_id.
-        // I should probably join attachments to get the URL or just return attachment_id.
-        // For now, let's stick to what's in the schema.
-
         const refinedQuery = `
              SELECT 
                 c.id, c.name, c.region_code, c.sport_id, 
                 c.attachment_id,
-                CASE 
-                    WHEN a.file_path IS NOT NULL THEN '/api/attachments/' || a.id || '/file'
-                    ELSE NULL 
-                END as image_url,
                 cm.role as my_role, cm.joined_at,
                 (SELECT COUNT(*) FROM club_members WHERE club_id = c.id AND state = 'MEMBER') as member_count
             FROM club_members cm
             JOIN clubs c ON cm.club_id = c.id
-            LEFT JOIN attachments a ON c.attachment_id = a.id
             WHERE cm.user_id = $1 AND cm.state = 'MEMBER'
             ORDER BY cm.joined_at DESC
         `;
@@ -174,15 +153,10 @@ exports.getMyFlashes = async (req, res) => {
             SELECT 
                 f.id, f.name, f.start_at, f.region_code, f.sport_id,
                 f.attachment_id,
-                CASE 
-                    WHEN a.file_path IS NOT NULL THEN '/api/attachments/' || a.id || '/file'
-                    ELSE NULL 
-                END as image_url,
                 fa.state as my_state,
                 CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host
             FROM flash_attendees fa
             JOIN flash_meetups f ON fa.meetup_id = f.id
-            LEFT JOIN attachments a ON f.attachment_id = a.id
             WHERE fa.user_id = $1 AND fa.state = 'JOINED'
             ORDER BY f.start_at DESC
         `;

@@ -22,8 +22,7 @@ router.post("/", authenticateToken, async (req, res) => {
       capacity_max,
       level_min,
       level_max,
-      attachment_id,
-      is_public // [NEW] Support for private clubs
+      attachment_id
     } = req.body;
 
     const ownerId = req.user.id;
@@ -87,9 +86,9 @@ router.post("/", authenticateToken, async (req, res) => {
         name, explain, region_code, location, sport_id, 
         start_time, end_time, days_of_week,
         capacity_min, capacity_max, level_min, level_max,
-        owner_user_id, coaching, attachment_id, is_public
+        owner_user_id, coaching, attachment_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *;
     `;
 
@@ -108,8 +107,7 @@ router.post("/", authenticateToken, async (req, res) => {
       level_max,
       ownerId,
       true, // coaching default true per schema
-      attachment_id || null,
-      is_public !== undefined ? is_public : true // Default to true if not provided
+      attachment_id || null
     ];
 
     const result = await pool.query(query, values);
@@ -187,8 +185,7 @@ router.get("/", async (req, res) => {
       }
       return {
         ...club,
-        days,
-        image_url: "/images/default-club.jpg"  // 고정 이미지
+        days
       };
     });
 
@@ -210,8 +207,7 @@ router.get("/:id", async (req, res) => {
 
     // 고정 이미지 URL 추가
     const club = {
-      ...result.rows[0],
-      image_url: "/images/default-club.jpg"
+      ...result.rows[0]
     };
 
     res.json(club);
@@ -227,12 +223,11 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
     const clubId = req.params.id;
     const userId = req.user.id;
 
-    // 1. 동호회 존재 여부 및 공개 설정 확인
-    const clubResult = await pool.query("SELECT is_public FROM clubs WHERE id = $1", [clubId]);
+    // 1. 동호회 존재 여부 확인
+    const clubResult = await pool.query("SELECT id FROM clubs WHERE id = $1", [clubId]);
     if (clubResult.rows.length === 0) {
       return res.status(404).json({ message: "존재하지 않는 동호회입니다." });
     }
-    const { is_public } = clubResult.rows[0];
 
     // 2. 이미 가입된 멤버인지 확인
     const memberCheck = await pool.query(
@@ -243,30 +238,12 @@ router.post("/:id/join", authenticateToken, async (req, res) => {
       return res.status(409).json({ message: "이미 가입된 동호회입니다." });
     }
 
-    if (is_public) {
-      // 3-A. 공개 동호회: 즉시 가입
-      await pool.query(
-        `INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'MEMBER')`,
-        [clubId, userId]
-      );
-      return res.status(200).json({ message: "가입 성공" });
-    } else {
-      // 3-B. 비공개 동호회: 가입 신청
-      // 이미 신청 중인지 확인
-      const appCheck = await pool.query(
-        "SELECT * FROM club_applications WHERE club_id=$1 AND user_id=$2 AND status='REQUESTED'",
-        [clubId, userId]
-      );
-      if (appCheck.rows.length > 0) {
-        return res.status(409).json({ message: "이미 가입 신청이 진행 중입니다." });
-      }
-
-      await pool.query(
-        `INSERT INTO club_applications (club_id, user_id, mode, status) VALUES ($1, $2, 'quick', 'REQUESTED')`,
-        [clubId, userId]
-      );
-      return res.status(200).json({ message: "가입 신청이 완료되었습니다. 승인을 기다려주세요." });
-    }
+    // 3. 즉시 가입 (Auto Join)
+    await pool.query(
+      `INSERT INTO club_members (club_id, user_id, role) VALUES ($1, $2, 'MEMBER')`,
+      [clubId, userId]
+    );
+    return res.status(200).json({ message: "가입 성공" });
 
   } catch (err) {
     console.error(err);
