@@ -187,7 +187,14 @@ exports.getMyFlashes = async (req, res) => {
             ORDER BY f.start_at DESC
         `;
         const { rows } = await pool.query(query, [userId]);
-        res.json(rows);
+
+        const formattedRows = rows.map(row => {
+            const { start_at, ...rest } = row;
+            const dateStr = new Date(start_at).toISOString().split('T')[0];
+            return { ...rest, date: dateStr };
+        });
+
+        res.json(formattedRows);
     } catch (error) {
         console.error('getMyFlashes error:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });

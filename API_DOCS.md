@@ -896,7 +896,7 @@
     {
       "id": "uuid...",
       "name": "한강 러닝",
-      "start_at": "2024-12-25T10:00:00.000Z",
+      "date": "2024-12-25",
       "region_code": "SEOUL",
       "sport_id": 5,
       "attachment_id": "uuid...",
