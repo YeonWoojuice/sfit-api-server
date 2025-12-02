@@ -510,6 +510,7 @@
 | `name` | String | Y | 번개 이름 | "한강 러닝 번개" |
 | `explain` | String | Y | 번개 설명 | "가볍게 뛰실 분" |
 | `region_code` | String | Y | 지역 코드 | "SEOUL" |
+| `location` | String | N | 장소명 (또는 주소) | "여의도 한강공원" |
 | `sport_id` | Integer | Y | 종목 ID | 5 |
 | `date` | String | Y | 날짜 (YYYY-MM-DD) | "2023-12-25" |
 | `start_time` | String | Y | 시작 시간 (HH:mm) | "10:00" |
@@ -527,6 +528,7 @@
   "name": "한강 러닝 번개",
   "explain": "가볍게 뛰실 분",
   "region_code": "SEOUL",
+  "location": "여의도 한강공원",
   "sport_id": 5,
   "date": "2023-12-25",
   "start_time": "10:00",
@@ -556,6 +558,7 @@
         "name": "한강 러닝 번개",
         "description": "가볍게 뛰실 분",
         "region_code": "SEOUL",
+        "location": "여의도 한강공원",
         "sport_id": 5,
         "host_user_id": "uuid-string",
         "date": "2023-12-25",
@@ -634,7 +637,7 @@
       "name": "한강 러닝 번개",
       "description": "가볍게 뛰실 분",
       "region_code": "SEOUL",
-      "place_text": "여의도 한강공원",
+      "location": "여의도 한강공원",
       "sport_id": 5,
       "host_user_id": "uuid-string",
       "date": "2025-12-25",
@@ -658,7 +661,7 @@
       "name": "주말 농구 번개",
       "description": "농구 한판 하실 분",
       "region_code": "BUSAN",
-      "place_text": "해운대 농구장",
+      "location": "해운대 농구장",
       "sport_id": 3,
       "host_user_id": "uuid-string-2",
       "date": "2025-12-26",

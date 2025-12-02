@@ -16,7 +16,8 @@ router.post("/", authenticateToken, async (req, res) => {
       sport, // Legacy support
       region_code,
       region, // Legacy support
-      place_text,
+      location, // [NEW]
+      place_text, // Legacy support
       level_min,
       level_max,
       capacity_min,
@@ -32,6 +33,7 @@ router.post("/", authenticateToken, async (req, res) => {
     // Map legacy fields
     const finalSportId = sport_id || sport;
     const finalRegionCode = region_code || region;
+    const finalLocation = location || place_text;
 
     // 필수 필드 검증
     if (!name || !explain || !finalSportId || !finalRegionCode ||
@@ -84,7 +86,7 @@ router.post("/", authenticateToken, async (req, res) => {
     const query = `
       INSERT INTO flash_meetups (
         name, description, attachment_id, host_user_id, 
-        sport_id, region_code, place_text, level_min, level_max,
+        sport_id, region_code, location, level_min, level_max,
         capacity_min, capacity_max, days_of_week,
         start_at, end_at, start_time, end_time, status
       )
@@ -99,7 +101,7 @@ router.post("/", authenticateToken, async (req, res) => {
       hostUserId,
       finalSportId,
       finalRegionCode,
-      place_text || null,
+      finalLocation || null,
       level_min || 1,
       level_max || 5,
       capacity_min || 3,
@@ -201,7 +203,51 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 3. 참여하기
+
+
+// 3. 상세 조회
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user ? req.user.id : null; // Optional auth if needed, but here we assume public or authenticated
+
+    let sql = `
+      SELECT f.*, u.name as host_name,
+             (f.start_at::date - CURRENT_DATE) as d_day_diff,
+             (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members,
+             CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host,
+             (SELECT state FROM flash_attendees fa WHERE fa.meetup_id = f.id AND fa.user_id = $1) as my_state
+      FROM flash_meetups f
+      JOIN users u ON f.host_user_id = u.id
+      WHERE f.id = $2
+    `;
+
+    const result = await pool.query(sql, [userId, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "존재하지 않는 번개입니다." });
+    }
+
+    const flash = result.rows[0];
+    const diff = flash.d_day_diff;
+    let d_day;
+    if (diff === 0) d_day = "D-Day";
+    else if (diff > 0) d_day = `D-${diff}`;
+    else d_day = `D+${Math.abs(diff)}`;
+
+    // Format response
+    const { start_at, end_at, ...rest } = flash;
+    const dateStr = new Date(start_at).toISOString().split('T')[0];
+
+    res.json({ ...rest, date: dateStr, d_day });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "상세 조회 실패" });
+  }
+});
+
+// 4. 참여하기
 router.post("/:id/join", authenticateToken, async (req, res) => {
   const flashId = req.params.id;
   const userId = req.user.id;
