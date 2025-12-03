@@ -159,9 +159,11 @@ router.get("/", async (req, res) => {
       SELECT f.*, u.name as host_name,
              COALESCE(f.rating_avg, 0) as rating_avg,
              (f.start_at::date - CURRENT_DATE) as d_day_diff,
-             (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members
+             (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members,
+             a.file_path as image_path
       FROM flash_meetups f
       JOIN users u ON f.host_user_id = u.id
+      LEFT JOIN attachments a ON f.attachment_id = a.id
     `;
 
     let params = [];
@@ -200,7 +202,7 @@ router.get("/", async (req, res) => {
         ...rest,
         date: dateStr,
         d_day,
-        image_url: flash.attachment_id ? `/api/attachments/${flash.attachment_id}/file` : null
+        image_url: "/images/default-club.jpg"
       };
     });
 
@@ -224,9 +226,11 @@ router.get("/:id", async (req, res) => {
              (f.start_at::date - CURRENT_DATE) as d_day_diff,
              (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members,
              CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host,
-             (SELECT state FROM flash_attendees fa WHERE fa.meetup_id = f.id AND fa.user_id = $1) as my_state
+             (SELECT state FROM flash_attendees fa WHERE fa.meetup_id = f.id AND fa.user_id = $1) as my_state,
+             a.file_path as image_path
       FROM flash_meetups f
       JOIN users u ON f.host_user_id = u.id
+      LEFT JOIN attachments a ON f.attachment_id = a.id
       WHERE f.id = $2
     `;
 
@@ -251,7 +255,7 @@ router.get("/:id", async (req, res) => {
       ...rest,
       date: dateStr,
       d_day,
-      image_url: flash.attachment_id ? `/api/attachments/${flash.attachment_id}/file` : null
+      image_url: "/images/default-club.jpg"
     });
 
   } catch (err) {

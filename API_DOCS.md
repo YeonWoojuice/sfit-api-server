@@ -183,6 +183,7 @@
 > 1. **먼저** `/api/attachments`로 이미지 파일을 업로드합니다 (`multipart/form-data`)
 > 2. 응답으로 받은 `id` 값을 `attachment_id` 필드에 포함시켜 동호회 생성 요청을 보냅니다
 > 3. 백엔드에서 `attachment_id`를 통해 이미지와 동호회를 연결합니다
+> 4. 조회 시 `image_url` 필드에 기본 이미지 경로(`/images/default-club.jpg`)가 반환됩니다.
 
 **Request Header**
 | key | value | 필수 여부 | 설명 |
@@ -383,6 +384,7 @@
       "capacity_min": 10,
       "capacity_max": 20,
       "level_min": 1,
+      "level_max": 3,
       "level_max": 3,
       "attachment_id": "uuid-string",
       "image_url": "/images/default-club.jpg",

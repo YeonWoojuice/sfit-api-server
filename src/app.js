@@ -12,7 +12,7 @@ const createApp = () => {
 
   app.use(cors());
   app.use(express.json());
-  app.use('/uploads', express.static('uploads'));
+  app.use('/uploads', express.static('uploads')); // Serve uploaded files statically
   app.use('/images', express.static('images'));  // 이미지 폴더 정적 파일 제공
 
   // 헬스 체크

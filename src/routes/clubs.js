@@ -140,9 +140,11 @@ router.get("/", async (req, res) => {
     let sql = `
       SELECT c.*, u.name as owner_name,
              COALESCE(c.rating_avg, 0) as rating_avg,
-             (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members
+             (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members,
+             a.file_path as image_path
       FROM clubs c
       JOIN users u ON c.owner_user_id = u.id
+      LEFT JOIN attachments a ON c.attachment_id = a.id
     `;
 
     let params = [];
@@ -187,7 +189,7 @@ router.get("/", async (req, res) => {
       return {
         ...club,
         days,
-        image_url: club.attachment_id ? `/api/attachments/${club.attachment_id}/file` : null
+        image_url: "/images/default-club.jpg"
       };
     });
 
@@ -203,14 +205,19 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query("SELECT * FROM clubs WHERE id = $1", [id]);
+    const result = await pool.query(`
+      SELECT c.*, a.file_path as image_path 
+      FROM clubs c 
+      LEFT JOIN attachments a ON c.attachment_id = a.id 
+      WHERE c.id = $1
+    `, [id]);
     if (result.rows.length === 0)
       return res.status(404).json({ message: "없음" });
 
     // 고정 이미지 URL 추가
     const club = {
       ...result.rows[0],
-      image_url: result.rows[0].attachment_id ? `/api/attachments/${result.rows[0].attachment_id}/file` : null
+      image_url: "/images/default-club.jpg"
     };
 
     res.json(club);
