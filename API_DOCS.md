@@ -206,6 +206,7 @@
   "level_min": 1,
   "level_max": 5,
   "is_public": true,
+  "coaching": true,
   "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
 }
 ```
@@ -291,6 +292,7 @@
       "level_max": 5,
       "is_public": true,
       "coaching": true,
+      "rating_avg": 4.5,
       "attachment_id": "uuid-string",
       "image_url": "/images/default-club.jpg",
       "owner_name": "홍길동",
@@ -347,6 +349,7 @@
 | `clubs[].level_max` | Integer | 최대 레벨 |
 | `clubs[].is_public` | Boolean | 공개 여부 |
 | `clubs[].coaching` | Boolean | 코칭 가능 여부 |
+| `clubs[].rating_avg` | Number | 평점 평균 |
 | `clubs[].attachment_id` | String (UUID)/null | 첨부파일 ID (이미지가 있을 경우) |
 | `clubs[].image_url` | String | 이미지 경로 (고정 이미지) |
 | `clubs[].owner_name` | String | 모임장 이름 |
@@ -519,6 +522,7 @@
 | `capacity_max` | Integer | N | 최대 인원 (기본 25, 최대 50) | 5 |
 | `level_min` | Integer | N | 최소 레벨 (기본 1) | 1 |
 | `level_max` | Integer | N | 최대 레벨 (기본 5) | 5 |
+| `coaching` | Boolean | N | 코칭 여부 (기본 true) | true |
 | `attachment_id` | String | N | 이미지 ID | "uuid..." |
 
 **요청 예시**
@@ -537,6 +541,7 @@
   "capacity_max": 5,
   "level_min": 1,
   "level_max": 3,
+  "coaching": true,
   "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
 }
 ```
@@ -569,6 +574,8 @@
         "capacity_max": 5,
         "level_min": 1,
         "level_max": 3,
+        "coaching": true,
+        "rating_avg": 0,
         "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2",
         "status": "DRAFT",
         "created_at": "2023-12-01T12:00:00.000Z"
@@ -614,6 +621,7 @@
 | --- | --- | --- | --- | --- |
 | `region` | String | N | 지역 코드 | `SEOUL` |
 | `sport` | Integer | N | 종목 ID | `1` |
+| `coaching` | String | N | 코칭 여부 필터 ("true") | `true` |
 
 **요청 예시**
 
@@ -651,7 +659,8 @@
       "attachment_id": "uuid-string",
       "status": "DRAFT",
       "host_name": "방장이름",
-      "rating": 0,
+      "coaching": true,
+      "rating_avg": 0,
       "d_day_diff": 23,
       "current_members": 3,
       "d_day": "D-23"
@@ -675,7 +684,8 @@
       "attachment_id": null,
       "status": "DRAFT",
       "host_name": "김철수",
-      "rating": 0,
+      "coaching": false,
+      "rating_avg": 4.2,
       "d_day_diff": 24,
       "current_members": 5,
       "d_day": "D-24"
@@ -940,6 +950,7 @@
       "region_code": "SEOUL",
       "sport_id": 2,
       "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file",
       "my_role": "MEMBER",
       "joined_at": "2024-01-01T00:00:00.000Z",
       "member_count": 15
@@ -960,6 +971,7 @@
       "region_code": "SEOUL",
       "sport_id": 5,
       "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file",
       "my_state": "JOINED",
       "is_host": false
     }

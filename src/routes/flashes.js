@@ -26,6 +26,7 @@ router.post("/", authenticateToken, async (req, res) => {
       date, // [NEW] "YYYY-MM-DD"
       start_time,
       end_time,
+      coaching, // [NEW]
     } = req.body;
     const hostUserId = req.user.id;
     console.log('POST /flashes body:', req.body);
@@ -88,9 +89,9 @@ router.post("/", authenticateToken, async (req, res) => {
         name, explain, attachment_id, host_user_id, 
         sport_id, region_code, location, level_min, level_max,
         capacity_min, capacity_max, days_of_week,
-        start_at, end_at, start_time, end_time, status
+        start_at, end_at, start_time, end_time, status, coaching
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `;
 
@@ -111,23 +112,13 @@ router.post("/", authenticateToken, async (req, res) => {
       end_at,
       finalStartTime,
       finalEndTime,
-      'DRAFT'
+      'DRAFT',
+      coaching !== undefined ? coaching : true // Default true
     ];
 
     // Helper to format response
     const formatFlashResponse = (flash) => {
       const { start_at, end_at, ...rest } = flash;
-      // start_at is ISO string or Date object.
-      // We assume start_at is stored in UTC or local time correctly.
-      // Since we input YYYY-MM-DD + HH:mm, start_at should reflect that.
-      // We just need to extract YYYY-MM-DD part.
-      // However, simply taking substring of ISO string might be affected by timezone if not careful.
-      // But here we constructed start_at from date + time.
-      // Let's use the 'date' field if available, or derive it.
-      // Actually, we can just return the 'date' input if available, but for GET requests we need to derive it.
-
-      // For consistency, let's derive it from start_at string.
-      // If start_at is "2025-12-25T10:00:00.000Z", date is "2025-12-25".
       const dateStr = new Date(start_at).toISOString().split('T')[0];
 
       return {
@@ -162,11 +153,11 @@ router.post("/", authenticateToken, async (req, res) => {
 // 2. 목록 조회
 router.get("/", async (req, res) => {
   try {
-    const { region, sport } = req.query;
+    const { region, sport, coaching } = req.query;
 
     let sql = `
       SELECT f.*, u.name as host_name,
-             0 as rating,
+             COALESCE(f.rating_avg, 0) as rating_avg,
              (f.start_at::date - CURRENT_DATE) as d_day_diff,
              (SELECT COUNT(*) FROM flash_attendees fa WHERE fa.meetup_id = f.id) as current_members
       FROM flash_meetups f
@@ -183,6 +174,9 @@ router.get("/", async (req, res) => {
     if (sport) {
       params.push(sport);
       conditions.push(`f.sport_id = $${params.length}`);
+    }
+    if (coaching === 'true') {
+      conditions.push(`f.coaching = true`);
     }
 
     if (conditions.length > 0) sql += " WHERE " + conditions.join(" AND ");
@@ -202,7 +196,12 @@ router.get("/", async (req, res) => {
       const { start_at, end_at, ...rest } = flash;
       const dateStr = new Date(start_at).toISOString().split('T')[0];
 
-      return { ...rest, date: dateStr, d_day };
+      return {
+        ...rest,
+        date: dateStr,
+        d_day,
+        image_url: flash.attachment_id ? `/api/attachments/${flash.attachment_id}/file` : null
+      };
     });
 
     res.json({ count: flashes.length, flashes: flashes });
@@ -248,7 +247,12 @@ router.get("/:id", async (req, res) => {
     const { start_at, end_at, ...rest } = flash;
     const dateStr = new Date(start_at).toISOString().split('T')[0];
 
-    res.json({ ...rest, date: dateStr, d_day });
+    res.json({
+      ...rest,
+      date: dateStr,
+      d_day,
+      image_url: flash.attachment_id ? `/api/attachments/${flash.attachment_id}/file` : null
+    });
 
   } catch (err) {
     console.error(err);

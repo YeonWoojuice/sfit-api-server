@@ -139,6 +139,7 @@ router.get("/", async (req, res) => {
 
     let sql = `
       SELECT c.*, u.name as owner_name,
+             COALESCE(c.rating_avg, 0) as rating_avg,
              (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.id) as current_members
       FROM clubs c
       JOIN users u ON c.owner_user_id = u.id
@@ -185,7 +186,8 @@ router.get("/", async (req, res) => {
       }
       return {
         ...club,
-        days
+        days,
+        image_url: club.attachment_id ? `/api/attachments/${club.attachment_id}/file` : null
       };
     });
 
@@ -207,7 +209,8 @@ router.get("/:id", async (req, res) => {
 
     // 고정 이미지 URL 추가
     const club = {
-      ...result.rows[0]
+      ...result.rows[0],
+      image_url: result.rows[0].attachment_id ? `/api/attachments/${result.rows[0].attachment_id}/file` : null
     };
 
     res.json(club);

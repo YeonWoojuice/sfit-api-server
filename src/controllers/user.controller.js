@@ -140,7 +140,11 @@ exports.getMyClubs = async (req, res) => {
         `;
 
         const { rows } = await pool.query(refinedQuery, [userId]);
-        res.json(rows);
+        const formattedRows = rows.map(row => ({
+            ...row,
+            image_url: row.attachment_id ? `/api/attachments/${row.attachment_id}/file` : null
+        }));
+        res.json(formattedRows);
     } catch (error) {
         console.error('getMyClubs error:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });
@@ -167,7 +171,11 @@ exports.getMyFlashes = async (req, res) => {
         const formattedRows = rows.map(row => {
             const { start_at, ...rest } = row;
             const dateStr = new Date(start_at).toISOString().split('T')[0];
-            return { ...rest, date: dateStr };
+            return {
+                ...rest,
+                date: dateStr,
+                image_url: row.attachment_id ? `/api/attachments/${row.attachment_id}/file` : null
+            };
         });
 
         res.json(formattedRows);
@@ -212,11 +220,20 @@ exports.getMyMeetings = async (req, res) => {
         const formattedFlashes = flashesResult.rows.map(row => {
             const { start_at, ...rest } = row;
             const dateStr = new Date(start_at).toISOString().split('T')[0];
-            return { ...rest, date: dateStr };
+            return {
+                ...rest,
+                date: dateStr,
+                image_url: row.attachment_id ? `/api/attachments/${row.attachment_id}/file` : null
+            };
         });
 
+        const formattedClubs = clubsResult.rows.map(row => ({
+            ...row,
+            image_url: row.attachment_id ? `/api/attachments/${row.attachment_id}/file` : null
+        }));
+
         res.json({
-            clubs: clubsResult.rows,
+            clubs: formattedClubs,
             flashes: formattedFlashes
         });
 
