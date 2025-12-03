@@ -842,7 +842,9 @@
     "badge_summary": null,
     "introduction": "안녕하세요!",
     "attachment_id": "uuid...",
-    "avatar_url": "/api/attachments/uuid.../file"
+    "avatar_url": "/api/attachments/uuid.../file",
+    "club_count": 2,
+    "application_count": 1
   }
   ```
 
@@ -864,7 +866,63 @@
   ```
 - **응답**: `{ "message": "정보가 수정되었습니다." }`
 
-### 5.3 아바타 수정
+### 5.3 내 활동 히스토리 조회
+- **URL**: `GET /api/users/me/history`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **쿼리 파라미터**:
+  - `type`: `all` (전체, 기본값), `club` (동호회), `flash` (번개)
+- **설명**: 과거의 동호회 가입 및 번개 참여 이력을 최신순으로 조회합니다.
+- **응답**:
+  ```json
+  [
+    {
+      "type": "FLASH",
+      "id": "uuid...",
+      "name": "한강 러닝 번개",
+      "explain": "가볍게 뛰실 분",
+      "region_code": "SEOUL",
+      "location": "여의도 한강공원",
+      "date": "2024-01-15",
+      "my_state": "JOINED",
+      "rating": null,
+      "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file"
+    },
+    {
+      "type": "CLUB",
+      "id": "uuid...",
+      "name": "서울 축구 클럽",
+      "explain": "매주 일요일 축구",
+      "region_code": "SEOUL",
+      "location": "잠실 운동장",
+      "date": "2023-12-01",
+      "my_role": "MEMBER",
+      "rating": null,
+      "attachment_id": "uuid...",
+      "image_url": "/api/attachments/uuid.../file"
+    }
+  ]
+  ```
+
+### 5.4 내 뱃지 목록 조회
+- **URL**: `GET /api/users/me/badges`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 획득한 뱃지 목록을 조회합니다.
+- **응답**:
+  ```json
+  [
+    {
+      "id": 1,
+      "code": "FIRST_FLASH",
+      "label": "첫 번개 참여",
+      "desc": "첫 번개 모임에 참여하셨군요!",
+      "type": "USER",
+      "granted_at": "2024-01-15T10:00:00.000Z"
+    }
+  ]
+  ```
+
+### 5.5 아바타 수정
 - **URL**: `PUT /api/users/me/avatar`
 - **헤더**: `Authorization: Bearer <accessToken>`
 - **요청 본문**: `{ "attachment_id": "uuid..." }`

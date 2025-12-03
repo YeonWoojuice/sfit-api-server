@@ -125,6 +125,23 @@ async function runTest() {
         const flashesData = await flashesRes.json();
         console.log('My Flashes Count:', flashesData.length);
 
+        // 8. Get My History
+        console.log('\n8. Fetching My History...');
+        const historyRes = await fetch(`${BASE_URL}/users/me/history`, { headers });
+        if (!historyRes.ok) throw new Error(`Get History failed: ${historyRes.statusText}`);
+        const historyData = await historyRes.json();
+        console.log('My History Count:', historyData.length);
+
+        if (historyData.length > 0) {
+            const item = historyData[0];
+            console.log('First History Item:', JSON.stringify(item, null, 2));
+            if (item.explain === undefined) throw new Error('explain field missing in history');
+            if (item.rating === undefined) throw new Error('rating field missing in history');
+            if (item.image_url === undefined) throw new Error('image_url field missing in history');
+        } else {
+            console.log('Warning: History is empty, cannot verify fields.');
+        }
+
         console.log('\n=== Test Passed Successfully ===');
 
     } catch (error) {

@@ -85,7 +85,7 @@ router.post("/", authenticateToken, async (req, res) => {
 
     const query = `
       INSERT INTO flash_meetups (
-        name, description, attachment_id, host_user_id, 
+        name, explain, attachment_id, host_user_id, 
         sport_id, region_code, location, level_min, level_max,
         capacity_min, capacity_max, days_of_week,
         start_at, end_at, start_time, end_time, status

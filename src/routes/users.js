@@ -18,22 +18,8 @@ router.get('/me/flashes', userController.getMyFlashes);
 router.get('/me/meetings', userController.getMyMeetings); // [NEW] 통합 조회
 
 // 3. 뱃지 목록 (Existing)
-router.get('/me/badges', async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const query = `
-      SELECT b.*, ub.granted_at
-      FROM user_badges ub
-      JOIN badges b ON ub.badge_id = b.id
-      WHERE ub.user_id = $1
-    `;
-        const result = await pool.query(query, [userId]);
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
+router.get('/me/history', userController.getMyHistory); // [NEW] 활동 히스토리
+router.get('/me/badges', userController.getMyBadges);
 
 // 4. 알림 목록 (Existing)
 router.get('/me/notifications', async (req, res) => {

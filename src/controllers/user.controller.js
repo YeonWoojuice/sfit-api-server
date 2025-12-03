@@ -4,7 +4,7 @@ const pool = require('../config/database');
 exports.getMe = async (req, res) => {
     const userId = req.user.id;
     try {
-        // 사용자 기본 정보 + 프로필 정보 + 아바타 이미지 URL
+        // 사용자 기본 정보 + 프로필 정보 + 아바타 이미지 URL + 활동 통계
         const query = `
             SELECT 
                 u.id, u.username, u.name, u.email, u.phone, u.role, u.created_at,
@@ -13,7 +13,9 @@ exports.getMe = async (req, res) => {
                 CASE 
                     WHEN a.file_path IS NOT NULL THEN '/api/attachments/' || a.id || '/file'
                     ELSE NULL 
-                END as avatar_url
+                END as avatar_url,
+                (SELECT COUNT(*) FROM club_members WHERE user_id = u.id AND state = 'MEMBER') as club_count,
+                (SELECT COUNT(*) FROM club_applications WHERE user_id = u.id AND status = 'REQUESTED') as application_count
             FROM users u
             LEFT JOIN profiles p ON u.id = p.user_id
             LEFT JOIN attachments a ON p.attachment_id = a.id
@@ -220,6 +222,91 @@ exports.getMyMeetings = async (req, res) => {
 
     } catch (error) {
         console.error('getMyMeetings error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+};
+
+// 내 활동 히스토리 (동호회 + 번개)
+exports.getMyHistory = async (req, res) => {
+    const userId = req.user.id;
+    const { type } = req.query; // 'all', 'club', 'flash'
+
+    try {
+        let history = [];
+
+        // 1. 동호회 활동 (가입일 기준)
+        if (type !== 'flash') {
+            const clubsQuery = `
+                SELECT 
+                    'CLUB' as type,
+                    c.id, c.name, c.region_code, c.location, 
+                    c.explain, -- 설명 (DB 컬럼명: explain)
+                    c.attachment_id, -- 이미지 ID 추가
+                    cm.joined_at as date,
+                    cm.role as my_role,
+                    NULL as rating -- 별점은 리뷰 테이블에서 가져와야 하지만 일단 NULL
+                FROM club_members cm
+                JOIN clubs c ON cm.club_id = c.id
+                WHERE cm.user_id = $1
+            `;
+            const clubsResult = await pool.query(clubsQuery, [userId]);
+            history = [...history, ...clubsResult.rows];
+        }
+
+        // 2. 번개 활동 (종료된 번개 or 시작일 기준)
+        if (type !== 'club') {
+            const flashesQuery = `
+                SELECT 
+                    'FLASH' as type,
+                    f.id, f.name, f.region_code, f.location,
+                    f.explain, -- 설명 (DB 컬럼명: explain)
+                    f.attachment_id, -- 이미지 ID 추가
+                    f.start_at as date,
+                    fa.state as my_state,
+                    NULL as rating
+                FROM flash_attendees fa
+                JOIN flash_meetups f ON fa.meetup_id = f.id
+                WHERE fa.user_id = $1 AND f.start_at < NOW() -- 지난 번개만
+            `;
+            const flashesResult = await pool.query(flashesQuery, [userId]);
+            history = [...history, ...flashesResult.rows];
+        }
+
+        // 3. 날짜순 정렬 (최신순)
+        history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 날짜 포맷팅 및 이미지 URL 생성
+        const formattedHistory = history.map(item => ({
+            ...item,
+            date: new Date(item.date).toISOString().split('T')[0],
+            image_url: item.attachment_id ? `/api/attachments/${item.attachment_id}/file` : null
+        }));
+
+        res.json(formattedHistory);
+
+    } catch (error) {
+        console.error('getMyHistory error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+};
+
+// 내 뱃지 조회
+exports.getMyBadges = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const query = `
+            SELECT 
+                b.id, b.code, b.label, b.desc, b.type,
+                ub.granted_at
+            FROM user_badges ub
+            JOIN badges b ON ub.badge_id = b.id
+            WHERE ub.user_id = $1
+            ORDER BY ub.granted_at DESC
+        `;
+        const { rows } = await pool.query(query, [userId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('getMyBadges error:', error);
         res.status(500).json({ message: '서버 오류가 발생했습니다.' });
     }
 };
