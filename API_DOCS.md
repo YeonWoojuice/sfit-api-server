@@ -592,17 +592,6 @@
 - **응답 본문**:
 
     ```json
-    { "message": "필수 정보 누락: ..." }
-    ```
-
----
-
-## 3.2 번개 모임 목록 조회
-
-## 1. 기본 정보
-
----
-
 | 항목 | 내용 |
 | --- | --- |
 | api 이름 | 번개 모임 목록 조회 |
@@ -702,7 +691,42 @@
 - **응답 본문**:
 
 ```json
-{ "message": "조회 실패" }
+      "location": "수지구청역",
+      "image_url": "/images/default-club.jpg",
+      "coaching": false,
+      "rating_avg": 0,
+      "owner_name": "김철수"
+    }
+  ]
+}
+```
+
+---
+
+### 2-2. 나의 예정된 번개 모임 조회 (My Upcoming)
+`GET /api/flashes/my-upcoming`
+- **헤더**: `Authorization: Bearer <accessToken>`
+
+로그인한 사용자가 참여(또는 주최)하는, 현재 시간 이후의 번개 모임 목록을 조회합니다.
+
+**Response**
+```json
+{
+  "count": 1,
+  "flashes": [
+    {
+      "id": "uuid-string",
+      "title": "아우내 배드민턴",
+      "date": "2025-10-24",
+      "time": "00:00",
+      "region": "GYEONGGI",
+      "location": "용인시 기흥구 강남대역",
+      "coaching": true,
+      "rating_avg": 4.5,
+      "owner_name": "홍길동"
+    }
+  ]
+}
 ```
 
 ---
@@ -782,6 +806,16 @@
 ```json
 { "message": "에러 발생" }
 ```
+
+---
+
+## 4. Metadata (메타데이터)
+
+### 4.1 지역 목록 조회
+- **URL**: `GET /api/meta/regions`
+- **응답**:
+  ```json
+  [
     { "code": "BUSAN", "name": "부산", "parent_code": null },
     { "code": "CHUNGBUK", "name": "충북", "parent_code": null },
     { "code": "CHUNGNAM", "name": "충남", "parent_code": null },
