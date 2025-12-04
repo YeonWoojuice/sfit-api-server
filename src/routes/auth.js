@@ -170,27 +170,21 @@ router.post("/refresh", async (req, res) => {
     // Verify JWT first
     const payload = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
 
-    const log = (msg) => require('fs').appendFileSync('debug_auth.log', new Date().toISOString() + ' ' + msg + '\n');
     // Check if token exists in DB (and not revoked)
     const tokens = await pool.query(
       "SELECT * FROM auth_tokens WHERE user_id = $1 AND revoked_at IS NULL",
       [payload.id]
     );
-    log(`Refresh: Found ${tokens.rows.length} active tokens for user ${payload.id}`);
     let validTokenRecord = null;
 
     for (const record of tokens.rows) {
       if (await bcrypt.compare(refreshToken, record.refresh_token_hash)) {
         validTokenRecord = record;
-        log(`Refresh: Token matched record ${record.id}`);
         break;
       }
     }
 
-    if (!validTokenRecord) {
-      log('Refresh: No matching active token found.');
-      return res.sendStatus(403);
-    }
+    if (!validTokenRecord) return res.sendStatus(403);
 
     // Refresh Token Rotation
     // 1. Revoke the old refresh token
@@ -228,50 +222,38 @@ router.post("/refresh", async (req, res) => {
 });
 
 // Logout
-const fs = require('fs');
-const logFile = 'debug_auth.log';
-const log = (msg) => fs.appendFileSync(logFile, new Date().toISOString() + ' ' + msg + '\n');
-
 router.post("/logout", async (req, res) => {
   const { refreshToken } = req.body;
-  log(`Logout requested. Token: ${refreshToken}`);
   if (!refreshToken) return res.sendStatus(204);
 
   try {
+    // Find and revoke
+    // We need to decode to get user_id to narrow down search
     const payload = jwt.decode(refreshToken);
-    log(`Logout payload: ${JSON.stringify(payload)}`);
-
     if (payload && payload.id) {
       const tokens = await pool.query(
         "SELECT * FROM auth_tokens WHERE user_id = $1",
         [payload.id]
       );
-      log(`Found tokens count: ${tokens.rows.length}`);
-
-      let revoked = false;
       for (const record of tokens.rows) {
         const match = await bcrypt.compare(refreshToken, record.refresh_token_hash);
         if (match) {
-          log(`Logout: Revoking token ID ${record.id}`);
           await pool.query(
             "UPDATE auth_tokens SET revoked_at = NOW() WHERE id = $1",
             [record.id]
           );
-          revoked = true;
-          break;
+          // Continue to find other matches if any (handling duplicates)
         }
       }
-      if (!revoked) log('No matching token found to revoke.');
-    } else {
-      log('Invalid payload or no ID.');
     }
     res.sendStatus(204);
   } catch (err) {
-    log(`Logout error: ${err}`);
-    res.sendStatus(204);
+    console.error(err);
+    res.sendStatus(204); // Always return success for logout
   }
 });
 
+// Me
 // Me
 // Get user profile
 router.get("/me", async (req, res) => {
@@ -282,12 +264,54 @@ router.get("/me", async (req, res) => {
   try {
     const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
     const result = await pool.query(
-      "SELECT id, username, name, email, role, phone, created_at FROM users WHERE id = $1",
+      "SELECT id, username, name, email, role, phone, created_at, gender, birthdate, region, bio, sports FROM users WHERE id = $1",
       [payload.id]
     );
     if (result.rows.length === 0) return res.sendStatus(404);
     res.json(result.rows[0]);
   } catch (err) {
+    return res.sendStatus(403);
+  }
+});
+
+// Update user profile
+router.put("/me", async (req, res) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  const { gender, birthdate, region, bio, sports } = req.body;
+
+  try {
+    const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
+
+    // Build dynamic query
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (gender !== undefined) { fields.push(`gender = $${idx++}`); values.push(gender); }
+    if (birthdate !== undefined) { fields.push(`birthdate = $${idx++}`); values.push(birthdate); }
+    if (region !== undefined) { fields.push(`region = $${idx++}`); values.push(region); }
+    if (bio !== undefined) { fields.push(`bio = $${idx++}`); values.push(bio); }
+    if (sports !== undefined) { fields.push(`sports = $${idx++}`); values.push(sports); }
+
+    if (fields.length === 0) return res.sendStatus(200); // Nothing to update
+
+    values.push(payload.id);
+    const query = `UPDATE users SET ${fields.join(", ")} WHERE id = $${idx}`;
+
+    await pool.query(query, values);
+
+    // Return updated user
+    const result = await pool.query(
+      "SELECT id, username, name, email, role, phone, created_at, gender, birthdate, region, bio, sports FROM users WHERE id = $1",
+      [payload.id]
+    );
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error(err);
     return res.sendStatus(403);
   }
 });

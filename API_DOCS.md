@@ -85,7 +85,6 @@
 - **헤더**: `Authorization: Bearer <accessToken>`
 
 **응답 (Response)**
-```json
 {
   "id": "uuid...",
   "username": "user123",
@@ -93,9 +92,33 @@
   "email": "user@test.com",
   "role": "USER",
   "phone": "010-1234-5678",
-  "created_at": "2024-01-01T00:00:00.000Z"
+  "created_at": "2024-01-01T00:00:00.000Z",
+  "gender": "F",
+  "birthdate": "2003-01-01",
+  "region": "서울시 강남구",
+  "bio": "함께 즐거운 운동 라이프 즐겨요~!",
+  "sports": "축구,농구"
 }
 ```
+
+### 1.3.1 내 정보 수정
+- **URL**: `PUT /api/auth/me`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 사용자의 프로필 정보를 수정합니다.
+
+**요청 본문 (Request Body)**
+```json
+{
+  "gender": "F",
+  "birthdate": "2003-01-01",
+  "region": "서울시 강남구",
+  "bio": "자기소개 수정",
+  "sports": "축구,농구"
+}
+```
+
+**응답 (Response)**
+*   **성공 (200 OK)**: 수정된 사용자 정보 반환 (GET /me와 동일)
 
 ---
 
@@ -124,48 +147,27 @@
 
 ### 1.5 로그아웃
 
-## 1. 기본 정보
+- **URL**: `POST /api/auth/logout`
+- **설명**: 사용자의 리프레시 토큰을 무효화하여 로그아웃 처리합니다.
 
----
+**요청 본문 (Request Body)**
+```json
+{
+  "refreshToken": "eyJ..."
+}
+```
 
-| 항목 | 내용 |
-| --- | --- |
-| api 이름 | 로그아웃 |
-| End Point | /api/auth/logout |
-| method | POST |
-| 인증 여부 | X |
-| 설명 | 사용자의 리프레시 토큰을 무효화하여 로그아웃 처리합니다. |
-
-## 2. Request
-
----
-
-### 2-1. Body
-
-### **바디 (Body)**
-
-| **필드명** | **타입** | **필수 여부** | **설명** | 프론트엔드 매칭 필드 |
-| --- | --- | --- | --- | --- |
+**필드 설명**
+| 필드명 | 타입 | 필수 | 설명 | 프론트엔드 매칭 필드 |
+| :--- | :--- | :--- | :--- | :--- |
 | `refreshToken` | String | Y | 리프레시 토큰 | `refreshToken` |
 
-## **4. 응답 (Response)**
-
----
-
-### **4-1. 성공 (204 No Content)**
-
-- **상황**: 로그아웃 성공 (또는 이미 만료된 토큰이라도 보안상 성공 처리)
-- **응답 본문**: 없음 (Body Empty)
-
-### **4-2. 실패 (500 Internal Server Error)**
-
-- **상황**: 서버 내부 오류
-- **응답 본문**:
-    
+**응답 (Response)**
+*   **성공 (204 No Content)**
+    *   응답 본문 없음
+*   **실패 (500 Internal Server Error)**
     ```json
-    {
-      "message": "Server error"
-    }
+    { "message": "Server error" }
     ```
 
 ---
@@ -797,6 +799,51 @@
     ```json
     { "message": "참가 가능한 레벨이 아닙니다. (제한: 1~3, 내 레벨: 5)" }
     ```
+
+---
+
+## 4. Coach (코치)
+
+### 4.1 코치 인증
+- **URL**: `POST /api/coach/verify`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 자격증 정보를 입력하여 코치로 인증받습니다.
+
+**요청 본문 (Request Body)**
+```json
+{
+  "name": "홍길동",
+  "certificateNumber": "2023-123456"
+}
+```
+
+**필드 설명**
+| 필드명 | 타입 | 필수 | 설명 |
+| :--- | :--- | :--- | :--- |
+| `name` | String | Y | 자격증에 기재된 이름 |
+| `certificateNumber` | String | Y | 자격증 번호 |
+
+**응답 (Response)**
+*   **성공 (200 OK)**
+    ```json
+    {
+      "message": "코치 인증이 완료되었습니다.",
+      "certification": {
+        "level": "1급",
+        "sport_id": 1,
+        "issue_date": "2023-01-01T00:00:00.000Z"
+      }
+    }
+    ```
+*   **실패 (404 Not Found)**
+    ```json
+    { "message": "일치하는 자격증 정보가 없습니다." }
+    ```
+*   **실패 (400 Bad Request)**
+    ```json
+    { "message": "이름과 자격증 번호는 필수입니다." }
+    ```
+
 
 ### 3-3. 실패 (500 Internal Server Error)
 
