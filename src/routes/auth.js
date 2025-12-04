@@ -89,11 +89,18 @@ router.post("/register", async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Default values for profile fields
+    const defaultGender = gender || '성별 미설정';
+    const defaultBirthdate = birthdate || '2000-01-01';
+    const defaultRegion = region || '지역 미설정';
+    const defaultBio = bio || '반갑습니다!';
+    const defaultSports = sports || '운동';
+
     // Insert user
     const newUser = await pool.query(
       `INSERT INTO users (username, password_hash, name, phone, email, gender, birthdate, region, bio, sports) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, username, role`,
-      [username, passwordHash, name, phone, email, gender, birthdate, region, bio, sports]
+      [username, passwordHash, name, phone, email, defaultGender, defaultBirthdate, defaultRegion, defaultBio, defaultSports]
     );
 
     res
