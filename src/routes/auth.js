@@ -58,7 +58,7 @@ router.post("/check-username", async (req, res) => {
 // Register
 router.post("/register", async (req, res) => {
   // Support both backend standard and frontend specific fields
-  let { username, password, name, phone, email } = req.body;
+  let { username, password, name, phone, email, gender, birthdate, region, bio, sports } = req.body;
   const { ID, Password, Name, phonenumber, Email, EmailDomain } = req.body;
 
   // Map frontend fields if present
@@ -91,9 +91,9 @@ router.post("/register", async (req, res) => {
 
     // Insert user
     const newUser = await pool.query(
-      `INSERT INTO users (username, password_hash, name, phone, email) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role`,
-      [username, passwordHash, name, phone, email]
+      `INSERT INTO users (username, password_hash, name, phone, email, gender, birthdate, region, bio, sports) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, username, role`,
+      [username, passwordHash, name, phone, email, gender, birthdate, region, bio, sports]
     );
 
     res
