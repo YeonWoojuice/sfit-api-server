@@ -170,21 +170,27 @@ router.post("/refresh", async (req, res) => {
     // Verify JWT first
     const payload = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
 
+    const log = (msg) => require('fs').appendFileSync('debug_auth.log', new Date().toISOString() + ' ' + msg + '\n');
     // Check if token exists in DB (and not revoked)
     const tokens = await pool.query(
       "SELECT * FROM auth_tokens WHERE user_id = $1 AND revoked_at IS NULL",
       [payload.id]
     );
+    log(`Refresh: Found ${tokens.rows.length} active tokens for user ${payload.id}`);
     let validTokenRecord = null;
 
     for (const record of tokens.rows) {
       if (await bcrypt.compare(refreshToken, record.refresh_token_hash)) {
         validTokenRecord = record;
+        log(`Refresh: Token matched record ${record.id}`);
         break;
       }
     }
 
-    if (!validTokenRecord) return res.sendStatus(403);
+    if (!validTokenRecord) {
+      log('Refresh: No matching active token found.');
+      return res.sendStatus(403);
+    }
 
     // Refresh Token Rotation
     // 1. Revoke the old refresh token
@@ -222,33 +228,47 @@ router.post("/refresh", async (req, res) => {
 });
 
 // Logout
+const fs = require('fs');
+const logFile = 'debug_auth.log';
+const log = (msg) => fs.appendFileSync(logFile, new Date().toISOString() + ' ' + msg + '\n');
+
 router.post("/logout", async (req, res) => {
   const { refreshToken } = req.body;
+  log(`Logout requested. Token: ${refreshToken}`);
   if (!refreshToken) return res.sendStatus(204);
 
   try {
-    // Find and revoke
-    // We need to decode to get user_id to narrow down search
     const payload = jwt.decode(refreshToken);
+    log(`Logout payload: ${JSON.stringify(payload)}`);
+
     if (payload && payload.id) {
       const tokens = await pool.query(
         "SELECT * FROM auth_tokens WHERE user_id = $1",
         [payload.id]
       );
+      log(`Found tokens count: ${tokens.rows.length}`);
+
+      let revoked = false;
       for (const record of tokens.rows) {
-        if (await bcrypt.compare(refreshToken, record.refresh_token_hash)) {
+        const match = await bcrypt.compare(refreshToken, record.refresh_token_hash);
+        if (match) {
+          log(`Logout: Revoking token ID ${record.id}`);
           await pool.query(
             "UPDATE auth_tokens SET revoked_at = NOW() WHERE id = $1",
             [record.id]
           );
+          revoked = true;
           break;
         }
       }
+      if (!revoked) log('No matching token found to revoke.');
+    } else {
+      log('Invalid payload or no ID.');
     }
     res.sendStatus(204);
   } catch (err) {
-    console.error(err);
-    res.sendStatus(204); // Always return success for logout
+    log(`Logout error: ${err}`);
+    res.sendStatus(204);
   }
 });
 
