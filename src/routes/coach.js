@@ -223,15 +223,17 @@ router.get('/', async (req, res) => {
 
 // Request Coach Verification
 router.post('/request', authenticateToken, async (req, res) => {
-    const { name, certificateNumber } = req.body;
+    const { name, certificateNumber, introduction, attachment_id, sports } = req.body;
     const userId = req.user.id;
 
+    // Basic validation - only name and certificateNumber are required
     if (!name || !certificateNumber) {
         return res.status(400).json({ message: '이름과 자격증 번호는 필수입니다.' });
     }
 
     try {
         console.log(`[DEBUG] Requesting verification for: ${name}, ${certificateNumber}`);
+
         // 1. Check if certificate exists and matches name (Optional: Can be done by admin, but good to check here too)
         const certResult = await pool.query(
             'SELECT * FROM coach_certifications WHERE certificate_number = $1 AND name = $2',
@@ -253,13 +255,34 @@ router.post('/request', authenticateToken, async (req, res) => {
             return res.status(409).json({ message: '이미 심사 중인 요청이 있습니다.' });
         }
 
-        // 3. Create Request
-        await pool.query(
-            'INSERT INTO coach_requests (user_id, name, certificate_number) VALUES ($1, $2, $3)',
-            [userId, name, certificateNumber]
-        );
+        // 3. Create Request (with optional introduction and attachment_id)
+        const query = `
+            INSERT INTO coach_requests (user_id, name, certificate_number, introduction, attachment_id) 
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id
+        `;
+        const result = await pool.query(query, [
+            userId,
+            name,
+            certificateNumber,
+            introduction || null,
+            attachment_id || null
+        ]);
 
-        res.json({ message: '코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다.' });
+        // 4. If sports provided, update user profile
+        if (sports && Array.isArray(sports)) {
+            await pool.query(
+                `INSERT INTO profiles (user_id, sports) 
+                 VALUES ($1, $2) 
+                 ON CONFLICT (user_id) DO UPDATE SET sports = $2`,
+                [userId, sports]
+            );
+        }
+
+        res.json({
+            message: '코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다.',
+            request_id: result.rows[0].id
+        });
 
     } catch (err) {
         console.error(err);

@@ -884,14 +884,18 @@
 ```json
 {
   "name": "홍길동",
-  "certificateNumber": "CERT-12345"
+  "certificateNumber": "CERT-12345",
+  "introduction": "10년 경력 테니스 전문 코치입니다.", // 선택사항
+  "attachment_id": "uuid", // 선택사항 (자격증 사진 등)
+  "sports": [1, 2] // 선택사항 (전문 종목 ID 배열)
 }
 ```
 
 **응답**
 ```json
 {
-  "message": "코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다."
+  "message": "코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다.",
+  "request_id": "uuid"
 }
 ```
 

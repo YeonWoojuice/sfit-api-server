@@ -121,7 +121,11 @@ router.get('/coach-requests', async (req, res) => {
                 u.phone,
                 p.region_code,
                 p.sports,
-                p.age
+                p.age,
+                CASE 
+                    WHEN cr.attachment_id IS NOT NULL THEN '/api/attachments/' || cr.attachment_id || '/file'
+                    ELSE NULL 
+                END as image_url
             FROM coach_requests cr
             JOIN users u ON cr.user_id = u.id
             LEFT JOIN profiles p ON u.id = p.user_id
