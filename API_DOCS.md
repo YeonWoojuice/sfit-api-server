@@ -966,7 +966,7 @@
     "name": "홍길동",
     "email": "user@test.com",
     "phone": "010-1234-5678",
-    "role": "USER",
+    "role": "USER",c
     "created_at": "2024-01-01T00:00:00.000Z",
     "gender": "M",
     "age": 25,
