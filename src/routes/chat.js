@@ -21,7 +21,9 @@ const authenticateToken = (req, res, next) => {
 // 1. GET /rooms - List Rooms
 router.get('/rooms', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const { filter, search } = req.query; // filter: 'unread', 'favorite'
+    // Support both 'filter' and 'filters' (frontend sends 'filters')
+    const filter = req.query.filter || req.query.filters;
+    const search = req.query.search;
 
     try {
         let query = `
