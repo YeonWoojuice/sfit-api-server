@@ -177,11 +177,23 @@ router.post('/coach-requests/:id/approve', async (req, res) => {
             [requestId]
         );
 
-        // 3. Update User Role
+        // 3. Update User Role to COACH
         await client.query(
             "UPDATE users SET role = 'COACH' WHERE id = $1",
             [request.user_id]
         );
+
+        // 4. Update or Insert Profile with coach info (introduction, attachment_id)
+        if (request.introduction || request.attachment_id) {
+            await client.query(`
+                INSERT INTO profiles (user_id, introduction, attachment_id)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (user_id) 
+                DO UPDATE SET 
+                    introduction = COALESCE(EXCLUDED.introduction, profiles.introduction),
+                    attachment_id = COALESCE(EXCLUDED.attachment_id, profiles.attachment_id)
+            `, [request.user_id, request.introduction, request.attachment_id]);
+        }
 
         await client.query('COMMIT');
         res.json({ message: 'Coach approved' });
