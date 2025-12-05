@@ -122,6 +122,30 @@
 
 ---
 
+### 1.3.2 예정된 번개 모임 조회 (My Upcoming)
+- **URL**: `GET /api/users/me/my-upcomming`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 로그인한 사용자가 참여(또는 주최)하는, 현재 시간 이후의 번개 모임 목록을 조회합니다.
+
+**응답 (Response)**
+```json
+[
+  {
+    "id": "uuid-string",
+    "name": "아우내 배드민턴",
+    "region_code": "GYEONGGI",
+    "sport_id": 1,
+    "attachment_id": "uuid...",
+    "my_state": "JOINED",
+    "is_host": false,
+    "date": "2025-10-24",
+    "image_url": "/api/attachments/uuid.../file"
+  }
+]
+```
+
+---
+
 ### 1.4 토큰 갱신
 - **URL**: `POST /api/auth/refresh`
 
@@ -583,7 +607,7 @@
         "attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2",
         "status": "DRAFT",
         "created_at": "2023-12-01T12:00:00.000Z"
-      },
+      },WW
       "received_attachment_id": "a0dbf47e-8d0e-4f04-83ab-e3f9df9a28a2"
     }
     ```
@@ -705,31 +729,7 @@
 
 ---
 
-### 2-2. 나의 예정된 번개 모임 조회 (My Upcoming)
-`GET /api/flashes/my-upcoming`
-- **헤더**: `Authorization: Bearer <accessToken>`
 
-로그인한 사용자가 참여(또는 주최)하는, 현재 시간 이후의 번개 모임 목록을 조회합니다.
-
-**Response**
-```json
-{
-  "count": 1,
-  "flashes": [
-    {
-      "id": "uuid-string",
-      "title": "아우내 배드민턴",
-      "date": "2025-10-24",
-      "time": "00:00",
-      "region": "GYEONGGI",
-      "location": "용인시 기흥구 강남대역",
-      "coaching": true,
-      "rating_avg": 4.5,
-      "owner_name": "홍길동"
-    }
-  ]
-}
-```
 
 ---
 
@@ -1169,3 +1169,91 @@
 | `404` | `파일을 찾을 수 없습니다.` | DB에 해당 attachment_id가 없는 경우 |
 | `404` | `파일이 존재하지 않습니다.` | DB에는 있지만 실제 파일이 없는 경우 |
 | `500` | `파일 조회 실패` | 서버 내부 오류 |
+
+---
+
+## 4. Coach (코치)
+
+### 4.1 코치 목록 조회
+- **URL**: `GET /api/coach`
+- **설명**: 등록된 코치 목록을 조회합니다.
+
+**응답 (Response)**
+```json
+{
+  "count": 2,
+  "coaches": [
+    {
+      "id": "uuid",
+      "name": "김코치",
+      "introduction": "테니스 전문 코치입니다.",
+      "region_code": "SEOUL",
+      "sports": "테니스",
+      "attachment_id": "uuid",
+      "image_url": "/api/attachments/uuid/file",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### 4.2 코치 인증 요청
+- **URL**: `POST /api/coach/request`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 코치 인증을 요청합니다. 관리자 승인 후 코치 권한이 부여됩니다.
+
+**요청 본문**
+```json
+{
+  "name": "홍길동",
+  "certificateNumber": "CERT-12345"
+}
+```
+
+**응답**
+```json
+{
+  "message": "코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다."
+}
+```
+
+---
+
+## 5. Admin (관리자)
+
+### 5.1 코치 인증 요청 목록 조회
+- **URL**: `GET /api/admin/coach-requests`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+[
+  {
+    "id": "uuid",
+    "user_id": "uuid",
+    "name": "홍길동",
+    "certificate_number": "CERT-12345",
+    "status": "PENDING",
+    "created_at": "2024-01-01T00:00:00Z",
+    "email": "user@test.com"
+  }
+]
+```
+
+### 5.2 코치 인증 승인
+- **URL**: `POST /api/admin/coach-requests/:id/approve`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+{ "message": "Coach approved" }
+```
+
+### 5.3 코치 인증 거절
+- **URL**: `POST /api/admin/coach-requests/:id/reject`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+{ "message": "Coach rejected" }
+```

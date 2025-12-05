@@ -120,19 +120,17 @@ async function run() {
 
         console.log('Inserted test data.');
 
-        // 4. Call API as User A
-        const data = await request(`${BASE_URL}/flashes/my-upcoming`, 'GET', tokenA);
-        console.log('My Upcoming Flashes:', data.flashes.length);
+        // 4. Call API as User A (NEW ENDPOINT)
+        const data = await request(`${BASE_URL}/users/me/my-upcomming`, 'GET', tokenA);
+        console.log('My Upcoming Flashes Count:', data.length);
 
         // 5. Verify
-        const flash1 = data.flashes.find(f => f.title === 'Flash 1 (Host A)');
-        const flash2 = data.flashes.find(f => f.title === 'Flash 2 (Host B, Join A)');
-        const flash3 = data.flashes.find(f => f.title === 'Flash 3 (Host B, No A)');
+        const flash1 = data.find(f => f.name === 'Flash 1 (Host A)');
+        const flash2 = data.find(f => f.name === 'Flash 2 (Host B, Join A)');
+        const flash3 = data.find(f => f.name === 'Flash 3 (Host B, No A)');
 
         if (flash1) {
             console.log('✅ Flash 1 found (Hosted).');
-            if (flash1.image_url === undefined) console.log('✅ Image URL correctly removed.');
-            else console.error('❌ Image URL still present.');
         }
         else console.error('❌ Flash 1 NOT found.');
 

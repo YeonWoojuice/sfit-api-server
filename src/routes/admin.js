@@ -108,4 +108,82 @@ router.get('/dashboard', async (req, res) => {
     }
 });
 
+// 5. Coach Requests List
+router.get('/coach-requests', async (req, res) => {
+    try {
+        const query = `
+            SELECT cr.*, u.email
+            FROM coach_requests cr
+            JOIN users u ON cr.user_id = u.id
+            WHERE cr.status = 'PENDING'
+            ORDER BY cr.created_at ASC
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// 6. Approve Coach Request
+router.post('/coach-requests/:id/approve', async (req, res) => {
+    const requestId = req.params.id;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1. Get Request
+        const reqResult = await client.query("SELECT * FROM coach_requests WHERE id = $1", [requestId]);
+        if (reqResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Request not found' });
+        }
+        const request = reqResult.rows[0];
+
+        if (request.status !== 'PENDING') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ message: 'Already processed' });
+        }
+
+        // 2. Update Request Status
+        await client.query(
+            "UPDATE coach_requests SET status = 'APPROVED', updated_at = NOW() WHERE id = $1",
+            [requestId]
+        );
+
+        // 3. Update User Role
+        await client.query(
+            "UPDATE users SET role = 'COACH' WHERE id = $1",
+            [request.user_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ message: 'Coach approved' });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    } finally {
+        client.release();
+    }
+});
+
+// 7. Reject Coach Request
+router.post('/coach-requests/:id/reject', async (req, res) => {
+    const requestId = req.params.id;
+    try {
+        await pool.query(
+            "UPDATE coach_requests SET status = 'REJECTED', updated_at = NOW() WHERE id = $1",
+            [requestId]
+        );
+        res.json({ message: 'Coach rejected' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

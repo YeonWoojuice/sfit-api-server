@@ -1,0 +1,47 @@
+[
+  {
+    "id": "6f33dbdd-3d25-4f80-aede-4844e63e0e7e",
+    "certificate_number": "CERT-1764839968538",
+    "name": "Coach User",
+    "sport_id": null,
+    "level": "1급",
+    "issue_date": "2025-12-03T15:00:00.000Z",
+    "created_at": "2025-12-04T09:19:29.482Z"
+  },
+  {
+    "id": "cbc52cef-b905-42fd-8f3a-c1eb68df7b12",
+    "certificate_number": "CERT-1764840405536",
+    "name": "Coach User",
+    "sport_id": null,
+    "level": "1급",
+    "issue_date": "2025-12-03T15:00:00.000Z",
+    "created_at": "2025-12-04T09:26:46.500Z"
+  },
+  {
+    "id": "97830f70-1c56-4596-8997-1c23f4ce573d",
+    "certificate_number": "CERT-1764840439356",
+    "name": "Coach User",
+    "sport_id": null,
+    "level": "1급",
+    "issue_date": "2025-12-03T15:00:00.000Z",
+    "created_at": "2025-12-04T09:27:20.287Z"
+  },
+  {
+    "id": "22aed8c5-0a91-4c72-bd94-0a9ab50a7039",
+    "certificate_number": "CERT-1764840703110",
+    "name": "Coach User",
+    "sport_id": null,
+    "level": "1급",
+    "issue_date": "2025-12-03T15:00:00.000Z",
+    "created_at": "2025-12-04T09:31:44.351Z"
+  },
+  {
+    "id": "548d394e-fd04-4efb-842c-5dddb0d8e63e",
+    "certificate_number": "CERT-TEST-123",
+    "name": "Candidate Kim",
+    "sport_id": 1,
+    "level": "1급",
+    "issue_date": "2025-12-04T15:00:00.000Z",
+    "created_at": "2025-12-05T09:20:37.397Z"
+  }
+]

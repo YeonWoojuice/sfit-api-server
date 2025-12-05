@@ -15,6 +15,7 @@ router.put('/me/avatar', userController.updateAvatar);
 // 2. 내 활동 조회
 router.get('/me/clubs', userController.getMyClubs);
 router.get('/me/flashes', userController.getMyFlashes);
+router.get('/me/my-upcomming', userController.getMyUpcomingFlashes); // [NEW] 예정된 번개
 router.get('/me/meetings', userController.getMyMeetings); // [NEW] 통합 조회
 
 // 3. 뱃지 목록 (Existing)

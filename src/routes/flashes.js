@@ -212,50 +212,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// 2-2. 나의 예정된 번개 모임 조회 (My Upcoming)
-router.get("/my-upcoming", authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const query = `
-      SELECT DISTINCT f.*, u.name as owner_name,
-             COALESCE(f.rating_avg, 0) as rating_avg
-      FROM flash_meetups f
-      JOIN users u ON f.host_user_id = u.id
-      LEFT JOIN flash_attendees fa ON f.id = fa.meetup_id
-      WHERE f.start_at > NOW()
-      AND (
-        f.host_user_id = $1
-        OR (fa.user_id = $1 AND fa.state = 'JOINED')
-      )
-      ORDER BY f.start_at ASC
-    `;
 
-    const result = await pool.query(query, [userId]);
-
-    const flashes = result.rows.map(flash => {
-      const dateObj = new Date(flash.start_at);
-      const date = dateObj.toISOString().split('T')[0];
-      const time = dateObj.toTimeString().split(' ')[0].substring(0, 5);
-
-      return {
-        id: flash.id,
-        title: flash.name,
-        date: date,
-        time: time,
-        region: flash.region_code,
-        location: flash.location,
-        coaching: flash.coaching,
-        rating_avg: flash.rating_avg,
-        owner_name: flash.owner_name
-      };
-    });
-
-    res.json({ count: flashes.length, flashes: flashes });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "나의 예정된 번개 모임 조회 실패" });
-  }
-});
 
 // 3. 상세 조회
 router.get("/:id", async (req, res) => {

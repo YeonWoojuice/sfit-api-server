@@ -185,6 +185,41 @@ exports.getMyFlashes = async (req, res) => {
     }
 };
 
+// 예정된 번개 목록 (Upcoming)
+exports.getMyUpcomingFlashes = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const query = `
+            SELECT 
+                f.id, f.name, f.start_at, f.region_code, f.sport_id,
+                f.attachment_id,
+                fa.state as my_state,
+                CASE WHEN f.host_user_id = $1 THEN true ELSE false END as is_host
+            FROM flash_meetups f
+            LEFT JOIN flash_attendees fa ON f.id = fa.meetup_id AND fa.user_id = $1
+            WHERE (f.host_user_id = $1 OR (fa.user_id = $1 AND fa.state = 'JOINED'))
+              AND f.start_at > NOW()
+            ORDER BY f.start_at ASC
+        `;
+        const { rows } = await pool.query(query, [userId]);
+
+        const formattedRows = rows.map(row => {
+            const { start_at, ...rest } = row;
+            const dateStr = new Date(start_at).toISOString().split('T')[0];
+            return {
+                ...rest,
+                date: dateStr,
+                image_url: row.attachment_id ? `/api/attachments/${row.attachment_id}/file` : null
+            };
+        });
+
+        res.json(formattedRows);
+    } catch (error) {
+        console.error('getMyUpcomingFlashes error:', error);
+        res.status(500).json({ message: '서버 오류가 발생했습니다.' });
+    }
+};
+
 // 내 모임 통합 조회 (동호회 + 번개)
 exports.getMyMeetings = async (req, res) => {
     const userId = req.user.id;
