@@ -3,11 +3,7 @@ const { Pool } = require("pg");
 require("dotenv").config(); // .env에서 비밀번호 꺼내오기
 
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false, // Render 외부 접속 시 필수 옵션
   },
