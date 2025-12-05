@@ -89,23 +89,44 @@ router.post("/register", async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Default values for profile fields
-    const defaultGender = gender || '성별 미설정';
-    const defaultBirthdate = birthdate || '2000-01-01';
-    const defaultRegion = region || '지역 미설정';
-    const defaultBio = bio || '반갑습니다!';
-    const defaultSports = sports || '운동';
-
-    // Insert user
+    // Insert user (only basic auth fields - schema match)
     const newUser = await pool.query(
-      `INSERT INTO users (username, password_hash, name, phone, email, gender, birthdate, region, bio, sports) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, username, role`,
-      [username, passwordHash, name, phone, email, defaultGender, defaultBirthdate, defaultRegion, defaultBio, defaultSports]
+      `INSERT INTO users (username, password_hash, name, phone, email) 
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role`,
+      [username, passwordHash, name, phone, email]
+    );
+
+    const userId = newUser.rows[0].id;
+
+    // Create profile if additional fields provided
+    if (gender || region || sports) {
+      await pool.query(
+        `INSERT INTO profiles (user_id, gender, region_code, sports, age) 
+         VALUES ($1, $2, $3, $4, $5)`,
+        [userId, gender || null, region || null, sports ? [sports] : null, null]
+      );
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(newUser.rows[0]);
+
+    // Save refresh token
+    const rtHash = await bcrypt.hash(refreshToken, 10);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      `INSERT INTO auth_tokens (user_id, refresh_token_hash, expires_at) 
+       VALUES ($1, $2, $3)`,
+      [userId, rtHash, expiresAt]
     );
 
     res
       .status(201)
-      .json({ message: "User registered successfully", user: newUser.rows[0] });
+      .json({
+        message: "User registered successfully",
+        user: newUser.rows[0],
+        accessToken,
+        refreshToken
+      });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
