@@ -2,11 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const jwt = require('jsonwebtoken');
-const OpenAI = require('openai');
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || 'access_secret';
 
@@ -172,87 +167,11 @@ router.get('/recommend', async (req, res) => {
             return { ...coach, score, recommendation_reason: reasons.join(', ') };
         });
 
-        // Sort by score and take top 10 candidates for AI analysis
-        scoredCoaches.sort((a, b) => b.score - a.score);
-        const candidates = scoredCoaches.slice(0, 10);
-
-        if (candidates.length === 0) {
-            return res.json({ count: 0, recommendations: [] });
-        }
-
-        // 4. AI Analysis (OpenAI)
-        try {
-            const prompt = `
-            You are an expert sports coach recommender.
-            
-            User Profile:
-            - Region: ${userRegion || 'Unknown'}
-            - Sports: ${userSports.join(', ')} (IDs)
-            - Age: ${userAge || 'Unknown'}
-
-            Candidates (Top 10 Rule-based):
-            ${JSON.stringify(candidates.map(c => ({
-                id: c.id,
-                name: c.name,
-                intro: c.introduction,
-                region: c.region_code,
-                sports: c.sport_names,
-                rating: c.rating,
-                age: c.age
-            })))}
-
-            Task:
-            Select the top 3-5 coaches who are the best match for this user.
-            Consider the user's region, sports interests, and age.
-            Also consider the coach's introduction and rating.
-            
-            Output JSON format:
-            {
-                "recommendations": [
-                    {
-                        "id": "coach_id",
-                        "reason": "Detailed reason why this coach is a good match (in Korean)"
-                    }
-                ]
-            }
-            `;
-
-            const completion = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
-                messages: [
-                    { role: "system", content: "You are a helpful assistant that outputs JSON." },
-                    { role: "user", content: prompt }
-                ],
-                response_format: { type: "json_object" }
-            });
-
-            const aiResult = JSON.parse(completion.choices[0].message.content);
-
-            // Merge AI results with full coach objects
-            const finalRecommendations = aiResult.recommendations.map(aiRec => {
-                const originalCoach = candidates.find(c => c.id === aiRec.id);
-                if (originalCoach) {
-                    return {
-                        ...originalCoach,
-                        recommendation_reason: aiRec.reason // Override with AI reason
-                    };
-                }
-                return null;
-            }).filter(c => c !== null);
-
-            res.json({
-                count: finalRecommendations.length,
-                recommendations: finalRecommendations
-            });
-
-        } catch (aiError) {
-            console.error('OpenAI Error:', aiError);
-            // Fallback to rule-based top 5
-            res.json({
-                count: Math.min(candidates.length, 5),
-                recommendations: candidates.slice(0, 5)
-            });
-        }
+        // 4. Return top 5 based on score
+        res.json({
+            count: Math.min(scoredCoaches.length, 5),
+            recommendations: scoredCoaches.slice(0, 5)
+        });
 
 
     } catch (err) {
