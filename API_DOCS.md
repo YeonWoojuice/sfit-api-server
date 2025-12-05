@@ -804,54 +804,95 @@
 
 ## 4. Coach (코치)
 
-### 4.1 코치 인증
-- **URL**: `POST /api/coach/verify`
-- **헤더**: `Authorization: Bearer <accessToken>`
-- **설명**: 자격증 정보를 입력하여 코치로 인증받습니다.
+### 4.1 AI 코치 추천
+- **URL**: `GET /api/coach/recommend`
+- **헤더**: `Authorization: Bearer <accessToken>` (선택)
+- **설명**: 사용자의 프로필(종목, 지역, 나이)과 코치의 정보를 비교하여 AI가 추천하는 코치 목록을 반환합니다.
+    - **로그인 시**: DB에 저장된 사용자 프로필을 사용합니다.
+    - **비로그인 시**: 쿼리 파라미터로 전달된 정보를 사용합니다.
 
-**요청 본문 (Request Body)**
+**쿼리 파라미터 (비로그인 시 필수)**
+- `region`: 지역 코드 (예: `SEOUL`)
+- `sports`: 종목 ID 목록 (콤마로 구분, 예: `1,2`)
+- `age`: 나이 (예: `25`)
+
+**추천 로직 (가중치)**
+- 종목 일치: +50점
+- 지역 일치: +30점
+- 나이대 유사(±5세): +10점
+- 별점: 별점 * 2 (최대 10점)
+
+**응답 (Response)**
 ```json
 {
-  "name": "홍길동",
-  "certificateNumber": "2023-123456"
+  "count": 5,
+  "recommendations": [
+    {
+      "id": "uuid",
+      "name": "김코치",
+      "introduction": "테니스 전문 코치입니다.",
+      "region_code": "SEOUL",
+      "sport_ids": [1],
+      "sport_names": "테니스",
+      "rating": 5.0,
+      "age_group": "30대",
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대",
+      "image_url": "/api/attachments/uuid/file"
+    }
+  ]
 }
 ```
 
-**필드 설명**
-| 필드명 | 타입 | 필수 | 설명 |
-| :--- | :--- | :--- | :--- |
-| `name` | String | Y | 자격증에 기재된 이름 |
-| `certificateNumber` | String | Y | 자격증 번호 |
+### 4.2 인기 코치 목록 조회
+- **URL**: `GET /api/coach/popular`
+- **설명**: 별점(rating) 순으로 상위 10명의 코치를 반환합니다. (로그인 불필요)
+- **응답**: `GET /api/coach`와 동일한 구조의 배열
+
+### 4.3 코치 목록 조회
+- **URL**: `GET /api/coach`
+- **설명**: 등록된 코치 목록을 조회합니다.
 
 **응답 (Response)**
-*   **성공 (200 OK)**
-    ```json
-    {
-      "message": "코치 인증이 완료되었습니다.",
-      "certification": {
-        "level": "1급",
-        "sport_id": 1,
-        "issue_date": "2023-01-01T00:00:00.000Z"
-      }
-    }
-    ```
-*   **실패 (404 Not Found)**
-    ```json
-    { "message": "일치하는 자격증 정보가 없습니다." }
-    ```
-*   **실패 (400 Bad Request)**
-    ```json
-    { "message": "이름과 자격증 번호는 필수입니다." }
-    ```
-
-
-### 3-3. 실패 (500 Internal Server Error)
-
-- **상황**: 서버 내부 오류
-- **응답 본문**:
-
 ```json
-{ "message": "에러 발생" }
+{
+  "count": 2,
+  "coaches": [
+    {
+      "id": "uuid",
+      "name": "김코치",
+      "introduction": "테니스 전문 코치입니다.",
+      "region_code": "SEOUL",
+      "sport_ids": [1],
+      "sport_names": "테니스",
+      "rating": 4.5,
+      "age_group": "30대",
+      "attachment_id": "uuid",
+      "image_url": "/api/attachments/uuid/file",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### 4.4 코치 인증 요청
+- **URL**: `POST /api/coach/request`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **설명**: 코치 인증을 요청합니다. 관리자 승인 후 코치 권한이 부여됩니다.
+
+**요청 본문**
+```json
+{
+  "name": "홍길동",
+  "certificateNumber": "CERT-12345"
+}
+```
+
+**응답**
+```json
+{
+  "message": "코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다."
+}
 ```
 
 ---
@@ -1103,6 +1144,43 @@
 - **URL**: `GET /api/admin/dashboard`
 - **헤더**: `Authorization: Bearer <accessToken>`
 
+### 6.2 코치 인증 요청 목록 조회
+- **URL**: `GET /api/admin/coach-requests`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+[
+  {
+    "id": "uuid",
+    "user_id": "uuid",
+    "name": "홍길동",
+    "certificate_number": "CERT-12345",
+    "status": "PENDING",
+    "created_at": "2024-01-01T00:00:00Z",
+    "email": "user@test.com"
+  }
+]
+```
+
+### 6.3 코치 인증 승인
+- **URL**: `POST /api/admin/coach-requests/:id/approve`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+{ "message": "Coach approved" }
+```
+
+### 6.4 코치 인증 거절
+- **URL**: `POST /api/admin/coach-requests/:id/reject`
+- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+
+**응답**
+```json
+{ "message": "Coach rejected" }
+```
+
 ---
 
 ## 7. Attachments (파일 업로드)
@@ -1172,91 +1250,126 @@
 
 ---
 
-## 4. Coach (코치)
 
-### 4.1 코치 목록 조회
-- **URL**: `GET /api/coach`
-- **설명**: 등록된 코치 목록을 조회합니다.
 
-**응답 (Response)**
+## 6. Chat (상담 채팅)
+
+### 6.1 채팅방 목록 조회
+- **URL**: `GET /api/chat/rooms`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **파라미터**:
+    - `filter`: `unread` (안 읽은 방), `favorite` (즐겨찾기) (선택)
+    - `search`: 상대방 이름 검색 (선택)
+- **응답**:
 ```json
 {
-  "count": 2,
-  "coaches": [
+  "count": 1,
+  "rooms": [
     {
       "id": "uuid",
-      "name": "김코치",
-      "introduction": "테니스 전문 코치입니다.",
-      "region_code": "SEOUL",
-      "sport_ids": [1],
-      "sport_names": "테니스",
-      "rating": 4.5,
-      "age_group": "30대",
-      "attachment_id": "uuid",
-      "image_url": "/api/attachments/uuid/file",
-      "created_at": "2024-01-01T00:00:00Z"
+      "partner": {
+        "id": "uuid",
+        "name": "김코치",
+        "image_url": "/api/attachments/uuid/file"
+      },
+      "last_message": "안녕하세요",
+      "last_message_at": "2024-01-01T00:00:00Z",
+      "unread_count": 2,
+      "is_favorite": true
     }
   ]
 }
 ```
 
-### 4.2 코치 인증 요청
-- **URL**: `POST /api/coach/request`
+### 6.2 채팅방 생성/조회
+- **URL**: `POST /api/chat/rooms`
 - **헤더**: `Authorization: Bearer <accessToken>`
-- **설명**: 코치 인증을 요청합니다. 관리자 승인 후 코치 권한이 부여됩니다.
-
-**요청 본문**
+- **Body**:
 ```json
 {
-  "name": "홍길동",
-  "certificateNumber": "CERT-12345"
+  "targetId": "uuid"
+}
+```
+- **응답**:
+```json
+{
+  "room_id": "uuid",
+  "created": true
 }
 ```
 
-**응답**
+### 6.3 메시지 내역 조회
+- **URL**: `GET /api/chat/rooms/:id/messages`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **파라미터**:
+    - `limit`: 조회 개수 (기본 50)
+    - `offset`: 오프셋 (기본 0)
+- **응답**:
 ```json
 {
-  "message": "코치 인증 요청이 접수되었습니다. 관리자 승인 후 반영됩니다."
+  "messages": [
+    {
+      "id": "uuid",
+      "sender_id": "uuid",
+      "content": "안녕하세요",
+      "type": "TEXT",
+      "created_at": "2024-01-01T00:00:00Z",
+      "is_read": false,
+      "sender_name": "김코치",
+      "sender_image": "/api/attachments/uuid/file"
+    }
+  ]
 }
 ```
 
----
-
-## 5. Admin (관리자)
-
-### 5.1 코치 인증 요청 목록 조회
-- **URL**: `GET /api/admin/coach-requests`
-- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
-
-**응답**
+### 6.4 메시지 전송
+- **URL**: `POST /api/chat/rooms/:id/messages`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **Body**:
 ```json
-[
-  {
+{
+  "content": "안녕하세요",
+  "type": "TEXT" // 또는 "LONG_TEXT"
+}
+```
+- **응답**:
+```json
+{
+  "message": "Sent",
+  "data": {
     "id": "uuid",
-    "user_id": "uuid",
-    "name": "홍길동",
-    "certificate_number": "CERT-12345",
-    "status": "PENDING",
-    "created_at": "2024-01-01T00:00:00Z",
-    "email": "user@test.com"
+    "created_at": "..."
   }
-]
+}
 ```
 
-### 5.2 코치 인증 승인
-- **URL**: `POST /api/admin/coach-requests/:id/approve`
-- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+### 6.5 읽음 처리
+- **URL**: `POST /api/chat/rooms/:id/read`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **응답**: `{"success": true}`
 
-**응답**
+### 6.6 즐겨찾기 토글
+- **URL**: `POST /api/chat/rooms/:id/favorite`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **응답**: `{"is_favorite": true}`
+
+### 6.7 메시지 수정
+- **URL**: `PUT /api/chat/rooms/:roomId/messages/:messageId`
+- **헤더**: `Authorization: Bearer <accessToken>`
+- **Body**:
 ```json
-{ "message": "Coach approved" }
+{
+  "content": "수정된 메시지"
+}
 ```
-
-### 5.3 코치 인증 거절
-- **URL**: `POST /api/admin/coach-requests/:id/reject`
-- **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
-
-**응답**
+- **응답**:
 ```json
-{ "message": "Coach rejected" }
+{
+  "message": "Updated",
+  "data": {
+    "id": "uuid",
+    "content": "수정된 메시지",
+    "updated_at": "..."
+  }
+}
 ```

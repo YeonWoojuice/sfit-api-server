@@ -1,0 +1,9 @@
+SyntaxError: Unexpected token 'F', "Forbidden" is not valid JSON
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5738:19)
+    at successSteps (node:internal/deps/undici/undici:5719:27)
+    at fullyReadBody (node:internal/deps/undici/undici:4609:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async consumeBody (node:internal/deps/undici/undici:5728:7)
+    at async request (C:\sfit\sfit-api-server\verify_coach_recommend.js:18:18)
+    at async run (C:\sfit\sfit-api-server\verify_coach_recommend.js:87:22)

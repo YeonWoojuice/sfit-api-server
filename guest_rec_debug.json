@@ -1,0 +1,90 @@
+{
+  "count": 5,
+  "recommendations": [
+    {
+      "id": "6eddf82f-e1de-479c-ae58-9b441d452c5d",
+      "name": "Coach A",
+      "introduction": null,
+      "region_code": "SEOUL",
+      "sport_ids": [
+        1
+      ],
+      "sport_names": "야구",
+      "rating": 5,
+      "age": 30,
+      "age_group": "30대",
+      "attachment_id": null,
+      "image_url": null,
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대"
+    },
+    {
+      "id": "087ba750-a9e0-4c73-b0c8-1a62bcd38c9b",
+      "name": "Coach A",
+      "introduction": null,
+      "region_code": "SEOUL",
+      "sport_ids": [
+        1
+      ],
+      "sport_names": "야구",
+      "rating": 5,
+      "age": 30,
+      "age_group": "30대",
+      "attachment_id": null,
+      "image_url": null,
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대"
+    },
+    {
+      "id": "d8b625b0-ef7b-4ba6-8fc7-f3c5c13a3f4c",
+      "name": "Coach A",
+      "introduction": null,
+      "region_code": "SEOUL",
+      "sport_ids": [
+        1
+      ],
+      "sport_names": "야구",
+      "rating": 5,
+      "age": 30,
+      "age_group": "30대",
+      "attachment_id": null,
+      "image_url": null,
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대"
+    },
+    {
+      "id": "741efe6e-aeb4-4a63-abe3-a4a2b8634ca7",
+      "name": "Coach A",
+      "introduction": null,
+      "region_code": "SEOUL",
+      "sport_ids": [
+        1
+      ],
+      "sport_names": "야구",
+      "rating": 5,
+      "age": 30,
+      "age_group": "30대",
+      "attachment_id": null,
+      "image_url": null,
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대"
+    },
+    {
+      "id": "46f8cc32-4d0e-41c7-a2dd-8da07af77f35",
+      "name": "Coach A",
+      "introduction": null,
+      "region_code": "SEOUL",
+      "sport_ids": [
+        1
+      ],
+      "sport_names": "야구",
+      "rating": 5,
+      "age": 30,
+      "age_group": "30대",
+      "attachment_id": null,
+      "image_url": null,
+      "score": 100,
+      "recommendation_reason": "관심 종목 일치, 같은 지역, 비슷한 연령대"
+    }
+  ]
+}
