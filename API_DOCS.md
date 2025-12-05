@@ -1147,20 +1147,30 @@
 ### 6.2 코치 인증 요청 목록 조회
 - **URL**: `GET /api/admin/coach-requests`
 - **헤더**: `Authorization: Bearer <accessToken>` (Admin Only)
+- **쿼리 파라미터**:
+  - `status` (선택): `PENDING`, `APPROVED`, `REJECTED`, `all` (기본값: 전체)
 
 **응답**
 ```json
-[
-  {
-    "id": "uuid",
-    "user_id": "uuid",
-    "name": "홍길동",
-    "certificate_number": "CERT-12345",
-    "status": "PENDING",
-    "created_at": "2024-01-01T00:00:00Z",
-    "email": "user@test.com"
-  }
-]
+{
+  "count": 2,
+  "requests": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "user_name": "홍길동",
+      "email": "user@test.com",
+      "phone": "010-1234-5678",
+      "region_code": "SEOUL",
+      "sports": [1, 2],
+      "age": 30,
+      "introduction": "10년 경력 테니스 코치입니다.",
+      "status": "PENDING",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
 ```
 
 ### 6.3 코치 인증 승인

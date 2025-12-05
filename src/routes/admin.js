@@ -111,15 +111,35 @@ router.get('/dashboard', async (req, res) => {
 // 5. Coach Requests List
 router.get('/coach-requests', async (req, res) => {
     try {
-        const query = `
-            SELECT cr.*, u.email
+        const { status } = req.query; // PENDING, APPROVED, REJECTED, or all
+
+        let query = `
+            SELECT 
+                cr.*,
+                u.name as user_name,
+                u.email,
+                u.phone,
+                p.region_code,
+                p.sports,
+                p.age
             FROM coach_requests cr
             JOIN users u ON cr.user_id = u.id
-            WHERE cr.status = 'PENDING'
-            ORDER BY cr.created_at ASC
+            LEFT JOIN profiles p ON u.id = p.user_id
         `;
-        const result = await pool.query(query);
-        res.json(result.rows);
+
+        const params = [];
+        if (status && status !== 'all') {
+            params.push(status.toUpperCase());
+            query += ` WHERE cr.status = $1`;
+        }
+
+        query += ` ORDER BY 
+            CASE WHEN cr.status = 'PENDING' THEN 0 ELSE 1 END,
+            cr.created_at DESC
+        `;
+
+        const result = await pool.query(query, params);
+        res.json({ count: result.rows.length, requests: result.rows });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
