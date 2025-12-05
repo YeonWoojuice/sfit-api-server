@@ -1,0 +1,46 @@
+{
+  "sports": [
+    {
+      "column_name": "id",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "active",
+      "data_type": "boolean"
+    },
+    {
+      "column_name": "name",
+      "data_type": "text"
+    }
+  ],
+  "reviews": [
+    {
+      "column_name": "rating",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "club_id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "writer_user_id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "id",
+      "data_type": "uuid"
+    },
+    {
+      "column_name": "manners",
+      "data_type": "integer"
+    },
+    {
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone"
+    },
+    {
+      "column_name": "comment",
+      "data_type": "text"
+    }
+  ]
+}

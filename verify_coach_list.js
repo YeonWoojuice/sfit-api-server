@@ -30,15 +30,15 @@ async function run() {
         // Update role to COACH directly in DB
         await pool.query("UPDATE users SET role = 'COACH' WHERE id = $1", [userId]);
 
-        // Add profile info
+        // Add profile info with age and rating
         await pool.query(`
-            INSERT INTO profiles (user_id, introduction, region_code, sports)
-            VALUES ($1, 'I am a pro coach.', 'SEOUL', $2)
+            INSERT INTO profiles (user_id, introduction, region_code, sports, age, rating)
+            VALUES ($1, 'I am a pro coach.', 'SEOUL', $2, 35, 4.8)
             ON CONFLICT (user_id) DO UPDATE 
-            SET introduction = 'I am a pro coach.', region_code = 'SEOUL', sports = $2
+            SET introduction = 'I am a pro coach.', region_code = 'SEOUL', sports = $2, age = 35, rating = 4.8
         `, [userId, [1]]);
 
-        console.log('Updated user to COACH.');
+        console.log('Updated user to COACH with profile.');
 
         // 2. Call GET /api/coach
         const res = await fetch(`${BASE_URL}/coach`);
@@ -49,8 +49,23 @@ async function run() {
         if (data.coaches && data.coaches.some(c => c.id === userId)) {
             console.log('✅ Coach found in list.');
             const coach = data.coaches.find(c => c.id === userId);
-            if (coach.introduction === 'I am a pro coach.') console.log('✅ Profile info correct.');
-            else console.error('❌ Profile info mismatch.');
+
+            if (coach.introduction === 'I am a pro coach.') console.log('✅ Introduction correct.');
+            else console.error('❌ Introduction mismatch.');
+
+            if (coach.rating === 4.8) console.log('✅ Rating correct.');
+            else console.error(`❌ Rating mismatch: ${coach.rating}`);
+
+            if (coach.age_group === '30대') console.log('✅ Age group correct.');
+            else console.error(`❌ Age group mismatch: ${coach.age_group}`);
+
+            // Sport name check depends on what sport ID 1 is. Assuming '축구' or similar if seeded.
+            // If sport 1 is not seeded, sport_names might be null or empty.
+            // But verify_coach_list.js doesn't seed sports.
+            // I'll check if sport_names is present.
+            if (coach.sport_names) console.log(`✅ Sport names present: ${coach.sport_names}`);
+            else console.warn('⚠️ Sport names missing (maybe sport 1 not in DB).');
+
         } else {
             console.error('❌ Coach NOT found in list.');
         }

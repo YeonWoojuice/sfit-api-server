@@ -24,7 +24,18 @@ router.get('/', async (req, res) => {
         const query = `
             SELECT 
                 u.id, u.name, 
-                p.introduction, p.region_code, p.sports,
+                p.introduction, p.region_code, 
+                p.sports as sport_ids,
+                (
+                    SELECT string_agg(s.name, ', ')
+                    FROM sports s
+                    WHERE s.id = ANY(p.sports)
+                ) as sport_names,
+                COALESCE(p.rating, 0) as rating,
+                CASE 
+                    WHEN p.age IS NOT NULL THEN (FLOOR(p.age / 10) * 10) || '대'
+                    ELSE '연령 미상' 
+                END as age_group,
                 p.attachment_id,
                 CASE 
                     WHEN p.attachment_id IS NOT NULL THEN '/api/attachments/' || p.attachment_id || '/file'

@@ -1188,7 +1188,10 @@
       "name": "김코치",
       "introduction": "테니스 전문 코치입니다.",
       "region_code": "SEOUL",
-      "sports": "테니스",
+      "sport_ids": [1],
+      "sport_names": "테니스",
+      "rating": 4.5,
+      "age_group": "30대",
       "attachment_id": "uuid",
       "image_url": "/api/attachments/uuid/file",
       "created_at": "2024-01-01T00:00:00Z"
