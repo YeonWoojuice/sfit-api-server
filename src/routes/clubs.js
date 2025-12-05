@@ -145,6 +145,7 @@ router.get("/", async (req, res) => {
       FROM clubs c
       JOIN users u ON c.owner_user_id = u.id
       LEFT JOIN attachments a ON c.attachment_id = a.id
+      LEFT JOIN regions r ON c.region_code = r.code
     `;
 
     let params = [];
