@@ -111,7 +111,7 @@ router.post('/rooms', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { targetId } = req.body;
 
-    if (!targetId) return res.status(400).json({ message: 'Target ID required' });
+    if (targetId === undefined || targetId === null) return res.status(400).json({ message: 'Target ID required' });
 
     try {
         // Check existing room (canonical order: user_id < target_id usually, but here we check both ways or enforce order)
@@ -182,7 +182,7 @@ router.post('/rooms/:id/messages', authenticateToken, async (req, res) => {
     const roomId = req.params.id;
     const { content, type = 'TEXT' } = req.body;
 
-    if (!content) return res.status(400).json({ message: 'Content required' });
+    if (content === undefined || content === null) return res.status(400).json({ message: 'Content required' });
 
     try {
         // 1. Insert Message
@@ -304,7 +304,7 @@ router.put('/rooms/:roomId/messages/:messageId', authenticateToken, async (req, 
     const { roomId, messageId } = req.params;
     const { content } = req.body;
 
-    if (!content) return res.status(400).json({ message: 'Content required' });
+    if (content === undefined || content === null) return res.status(400).json({ message: 'Content required' });
 
     try {
         // Check ownership and room
